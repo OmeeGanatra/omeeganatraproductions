@@ -1,0 +1,89 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+.turbo/
+
+# Next.js
+.next/
+.vercel/
+
+# Prisma
+packages/db/src/generated/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.staging
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker
+docker-compose.override.yml
+
+# MinIO local data
+minio-data/
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+.metadata
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/app/build/
+android/build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.prof
+dart_tool/
+.pub-cache/
+.pub/
+pubspec.lock
+
+# Misc
+*.tsbuildinfo
+*.pem
+*.cert
+.cache/
+tmp/
+temp/

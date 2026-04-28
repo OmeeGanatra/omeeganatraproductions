@@ -1,0 +1,460 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@200;300;400;500;600&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  --color-gold: #C9A96E;
+  --color-gold-light: #DFC89A;
+  --color-gold-dark: #A8884D;
+  --color-bg: #050505;
+  --color-bg-elevated: #0A0A0A;
+  --color-surface: #111111;
+  --color-surface-light: #181818;
+  --color-ivory: #F5F0EB;
+  --color-ivory-muted: #9B968F;
+  --color-border: #1E1E1E;
+  --color-border-light: #2A2A2A;
+
+  /* Legacy aliases so other pages still work */
+  --color-dark: #050505;
+  --color-charcoal: #1A1A1A;
+  --color-cream: #F5F0EB;
+  --color-cream-muted: #9B968F;
+
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Reset ─── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: #2A2A2A #050505;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  background-color: #050505;
+  color: var(--color-ivory);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* ─── Selection ─── */
+::selection {
+  background-color: rgba(201, 169, 110, 0.25);
+  color: var(--color-ivory);
+}
+
+/* ─── Focus ─── */
+:focus-visible {
+  outline: 1px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* ─── Headings ─── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════
+   Film Grain Overlay
+   ═══════════════════════════════════════════ */
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+.film-grain {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  animation: grain 8s steps(10) infinite;
+}
+
+/* ═══════════════════════════════════════════
+   Fade-in-up Animation Utilities
+   ═══════════════════════════════════════════ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes expandWidth {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* Staggered delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+.delay-1000 { animation-delay: 1000ms; }
+.delay-1200 { animation-delay: 1200ms; }
+
+/* ═══════════════════════════════════════════
+   Letterbox / Cinematic Helpers
+   ═══════════════════════════════════════════ */
+.aspect-cinematic {
+  aspect-ratio: 21 / 9;
+}
+
+.aspect-ultrawide {
+  aspect-ratio: 2.76 / 1;
+}
+
+/* ═══════════════════════════════════════════
+   Elegant Horizontal Rules
+   ═══════════════════════════════════════════ */
+.hr-gold {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+.hr-subtle {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border-light), transparent);
+}
+
+.hr-gold-short {
+  border: none;
+  height: 1px;
+  width: 60px;
+  margin: 0 auto;
+  background: var(--color-gold);
+}
+
+/* ═══════════════════════════════════════════
+   Ornamental Divider
+   ═══════════════════════════════════════════ */
+.ornament {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.ornament::before,
+.ornament::after {
+  content: "";
+  height: 1px;
+  width: 60px;
+  background: linear-gradient(90deg, transparent, var(--color-gold));
+}
+
+.ornament::after {
+  background: linear-gradient(90deg, var(--color-gold), transparent);
+}
+
+/* ═══════════════════════════════════════════
+   Gradient Text
+   ═══════════════════════════════════════════ */
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold), var(--color-gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════
+   Glassmorphism Cards
+   ═══════════════════════════════════════════ */
+.glass {
+  background: rgba(17, 17, 17, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(201, 169, 110, 0.08);
+}
+
+.glass-warm {
+  background: linear-gradient(
+    135deg,
+    rgba(201, 169, 110, 0.05),
+    rgba(17, 17, 17, 0.7)
+  );
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(201, 169, 110, 0.1);
+}
+
+/* ═══════════════════════════════════════════
+   Image Hover Zoom
+   ═══════════════════════════════════════════ */
+.img-zoom {
+  overflow: hidden;
+}
+
+.img-zoom img {
+  transition: transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.img-zoom:hover img {
+  transform: scale(1.05);
+}
+
+/* ═══════════════════════════════════════════
+   Animated Underline
+   ═══════════════════════════════════════════ */
+.link-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--color-gold);
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════
+   Custom Cursor (optional, desktop)
+   ═══════════════════════════════════════════ */
+@media (hover: hover) and (pointer: fine) {
+  a, button {
+    cursor: pointer;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Smooth Page Transition Wrapper
+   ═══════════════════════════════════════════ */
+.page-enter {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* ═══════════════════════════════════════════
+   Parallax helper
+   ═══════════════════════════════════════════ */
+.parallax-container {
+  perspective: 1px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.parallax-layer-back {
+  transform: translateZ(-1px) scale(2);
+}
+
+.parallax-layer-base {
+  transform: translateZ(0);
+}
+
+/* ═══════════════════════════════════════════
+   Nav blur on scroll
+   ═══════════════════════════════════════════ */
+.nav-blur {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(5, 5, 5, 0.7);
+  border-bottom: 1px solid rgba(30, 30, 30, 0.5);
+}
+
+/* ═══════════════════════════════════════════
+   Reveal on scroll (intersection observer helper)
+   ═══════════════════════════════════════════ */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   Service Row Hover
+   ═══════════════════════════════════════════ */
+.service-row {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.service-row:hover {
+  padding-left: 16px;
+}
+
+.service-row:hover .service-number {
+  color: var(--color-gold);
+}
+
+.service-row:hover .service-title {
+  color: var(--color-gold-light);
+}
+
+/* ═══════════════════════════════════════════
+   Login input styles
+   ═══════════════════════════════════════════ */
+.input-luxury {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0;
+  padding: 12px 0;
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 15px;
+  color: var(--color-ivory);
+  width: 100%;
+  transition: border-color 0.3s ease;
+  outline: none;
+  letter-spacing: 0.02em;
+}
+
+.input-luxury::placeholder {
+  color: rgba(155, 150, 143, 0.4);
+  font-weight: 200;
+}
+
+.input-luxury:focus {
+  border-bottom-color: var(--color-gold);
+}
+
+/* ═══════════════════════════════════════════
+   Button Luxury
+   ═══════════════════════════════════════════ */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-gold);
+  color: #050505;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 16px 32px;
+  border: none;
+  transition: all 0.4s ease;
+  cursor: pointer;
+}
+
+.btn-gold:hover {
+  background: var(--color-gold-light);
+  letter-spacing: 0.2em;
+}
+
+.btn-gold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--color-gold);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 14px 0;
+  border: none;
+  border-bottom: 1px solid var(--color-gold);
+  transition: all 0.4s ease;
+  cursor: pointer;
+}
+
+.btn-outline:hover {
+  letter-spacing: 0.2em;
+  padding-bottom: 16px;
+}

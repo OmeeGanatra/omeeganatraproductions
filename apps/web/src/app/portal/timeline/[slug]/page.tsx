@@ -1,0 +1,9 @@
+import TimelinePage from "./client-page";
+
+export function generateStaticParams() {
+  return [{ slug: "_" }];
+}
+
+export default function Page() {
+  return <TimelinePage />;
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", ".env.local"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "db:generate"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "db:generate": {
+      "inputs": ["prisma/schema.prisma"],
+      "outputs": ["src/generated/**"],
+      "cache": false
+    },
+    "db:push": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["db:generate"],
+      "persistent": true,
+      "cache": false
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "*.config.*", "package.json"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "db:generate"],
+      "inputs": ["src/**", "tsconfig.json", "package.json"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

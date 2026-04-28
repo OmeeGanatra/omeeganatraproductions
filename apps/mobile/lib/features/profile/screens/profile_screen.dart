@@ -60,7 +60,7 @@ class ProfileScreen extends ConsumerWidget {
 
             // Name
             Text(
-              user?.name ?? 'Guest',
+              user?.fullName ?? 'Guest',
               style: GoogleFonts.playfairDisplay(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,

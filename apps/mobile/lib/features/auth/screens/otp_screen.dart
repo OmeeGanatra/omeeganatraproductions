@@ -102,7 +102,7 @@ class _OTPScreenState extends ConsumerState<OTPScreen>
 
   void _handleResend() {
     if (!_canResend) return;
-    ref.read(authProvider.notifier).resendOtp();
+    // Resend is not supported — the user must log in again to get a new code.
     _startResendTimer();
   }
 

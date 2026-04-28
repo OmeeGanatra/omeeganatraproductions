@@ -59,15 +59,17 @@ class MediaViewerNotifier extends StateNotifier<MediaViewerState> {
   void toggleFavorite() async {
     if (state.item == null) return;
     final current = state.item!;
-    state = state.copyWith(
-      item: current.copyWith(isFavorited: !current.isFavorited),
-    );
+    final nowFavorited = !current.isFavorited;
+    state = state.copyWith(item: current.copyWith(isFavorited: nowFavorited));
     try {
-      await ApiClient.instance.post(Endpoints.toggleFavorite(mediaId));
+      if (nowFavorited) {
+        await ApiClient.instance
+            .post(Endpoints.addFavorite, data: {'mediaItemId': mediaId});
+      } else {
+        await ApiClient.instance.delete(Endpoints.removeFavorite(mediaId));
+      }
     } catch (_) {
-      state = state.copyWith(
-        item: current.copyWith(isFavorited: current.isFavorited),
-      );
+      state = state.copyWith(item: current);
     }
   }
 }

@@ -118,11 +118,13 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Skip auth for login/refresh endpoints
-    if (options.path.contains('/auth/login') ||
-        options.path.contains('/auth/refresh') ||
-        options.path.contains('/auth/verify-otp') ||
-        options.path.contains('/auth/resend-otp')) {
+    // Skip auth for unauthenticated endpoints
+    if (options.path == Endpoints.authClientLogin ||
+        options.path == Endpoints.authAdminLogin ||
+        options.path == Endpoints.authForgotPassword ||
+        options.path == Endpoints.authResetPassword ||
+        options.path == Endpoints.authVerifyOtp ||
+        options.path == Endpoints.authRefresh) {
       return handler.next(options);
     }
 

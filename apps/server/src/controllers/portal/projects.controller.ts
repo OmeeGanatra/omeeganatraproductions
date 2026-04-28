@@ -125,6 +125,56 @@ export async function getProject(
   }
 }
 
+export async function getTimeline(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const clientId = req.user!.id;
+    const { slug } = req.params;
+
+    const project = await prisma.project.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    const access = await prisma.projectClient.findUnique({
+      where: {
+        projectId_clientId: { projectId: project.id, clientId },
+      },
+    });
+
+    if (!access) {
+      throw new AppError("Access denied", 403);
+    }
+
+    const events = await prisma.weddingTimelineEvent.findMany({
+      where: { projectId: project.id },
+      orderBy: [{ eventTime: "asc" }, { sortOrder: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        eventTime: true,
+        endTime: true,
+        location: true,
+        icon: true,
+        galleryId: true,
+        sortOrder: true,
+      },
+    });
+
+    res.json(events);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listGalleries(
   req: Request,
   res: Response,

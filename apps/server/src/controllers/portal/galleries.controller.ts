@@ -128,6 +128,47 @@ export async function getGalleryMedia(
   }
 }
 
+export async function getGalleryDetail(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const clientId = req.user!.id;
+    const galleryId = req.params.id;
+
+    const access = await verifyClientAccessToGallery(clientId, galleryId);
+    if (!access) {
+      throw new AppError("Access denied", 403);
+    }
+
+    const gallery = await prisma.gallery.findUnique({
+      where: { id: galleryId },
+      select: {
+        id: true,
+        projectId: true,
+        title: true,
+        slug: true,
+        coverImageUrl: true,
+        mediaCount: true,
+        status: true,
+        downloadEnabled: true,
+        watermarkEnabled: true,
+        sortOrder: true,
+        createdAt: true,
+      },
+    });
+
+    if (!gallery || gallery.status !== "PUBLISHED") {
+      throw new AppError("Gallery not found or not published", 404);
+    }
+
+    res.json(gallery);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function verifyPassword(
   req: Request,
   res: Response,

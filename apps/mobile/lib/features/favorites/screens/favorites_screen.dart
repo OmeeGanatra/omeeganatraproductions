@@ -115,7 +115,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     state = state.copyWith(groups: newGroups);
 
     try {
-      await ApiClient.instance.post(Endpoints.toggleFavorite(mediaId));
+      await ApiClient.instance.delete(Endpoints.removeFavorite(mediaId));
     } catch (_) {
       // Reload on error
       loadFavorites();

@@ -27,6 +27,7 @@ router.get("/projects/:slug", projectsCtrl.getProject);
 router.get("/projects/:slug/galleries", projectsCtrl.listGalleries);
 
 // Galleries
+router.get("/galleries/:id", galleriesCtrl.getGalleryDetail);
 router.get("/galleries/:id/media", galleriesCtrl.getGalleryMedia);
 router.post(
   "/galleries/:id/verify-password",
@@ -35,6 +36,7 @@ router.post(
 );
 
 // Media
+router.get("/media/:id", mediaCtrl.getMediaItem);
 router.get("/media/:id/download-url", mediaCtrl.getDownloadUrl);
 router.post(
   "/galleries/:id/download-zip",
@@ -47,8 +49,12 @@ router.get("/favorites", favoritesCtrl.listFavorites);
 router.post("/favorites", validate(addFavoriteSchema), favoritesCtrl.addFavorite);
 router.delete("/favorites/:mediaItemId", favoritesCtrl.removeFavorite);
 
+// Projects — timeline
+router.get("/projects/:slug/timeline", projectsCtrl.getTimeline);
+
 // Notifications
 router.get("/notifications", notificationsCtrl.listNotifications);
+router.put("/notifications/read-all", notificationsCtrl.markAllRead);
 router.put("/notifications/:id/read", notificationsCtrl.markRead);
 
 export default router;

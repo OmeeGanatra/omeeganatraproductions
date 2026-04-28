@@ -82,7 +82,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
 
     try {
       await ApiClient.instance
-          .post(Endpoints.markNotificationRead(notificationId));
+          .put(Endpoints.markNotificationRead(notificationId));
     } catch (_) {}
   }
 
@@ -92,7 +92,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     state = state.copyWith(notifications: updated);
 
     try {
-      await ApiClient.instance.post(Endpoints.markAllNotificationsRead);
+      await ApiClient.instance.put(Endpoints.markAllNotificationsRead);
     } catch (_) {}
   }
 }

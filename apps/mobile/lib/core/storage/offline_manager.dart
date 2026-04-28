@@ -91,8 +91,15 @@ class OfflineManager {
       final cancelToken = CancelToken();
       _activeDownloads[mediaItem.id] = cancelToken;
 
-      await ApiClient.instance.download(
-        Endpoints.mediaDownload(mediaItem.id),
+      // Step 1: get presigned download URL from the API
+      final urlResponse = await ApiClient.instance
+          .get(Endpoints.mediaDownloadUrl(mediaItem.id));
+      final downloadUrl =
+          (urlResponse.data as Map<String, dynamic>)['downloadUrl'] as String;
+
+      // Step 2: download the file from the presigned URL without auth headers
+      await Dio().download(
+        downloadUrl,
         filePath,
         onReceiveProgress: (received, total) {
           if (total > 0) {

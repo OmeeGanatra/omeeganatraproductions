@@ -66,7 +66,7 @@ class _PhotoTileState extends State<PhotoTile>
       onTapUp: (_) => _scaleController.reverse(),
       onTapCancel: () => _scaleController.reverse(),
       child: AnimatedBuilder(
-        animation: _scaleAnimation,
+        listenable: _scaleAnimation,
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,

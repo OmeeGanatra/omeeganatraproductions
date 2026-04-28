@@ -39,7 +39,7 @@ class MediaItem {
     return MediaItem(
       id: json['id'] as String,
       galleryId: json['galleryId'] as String,
-      type: (json['type'] as String?) == 'video'
+      type: (json['type'] as String?)?.toLowerCase() == 'video'
           ? MediaType.video
           : MediaType.photo,
       filenameOriginal: json['filenameOriginal'] as String? ?? '',

@@ -5,6 +5,7 @@ import { generateDownloadUrl } from "../../utils/s3.js";
 import { verifyGallerySessionToken } from "../../utils/jwt.js";
 import { AppError } from "../../middleware/errorHandler.js";
 import { redis } from "../../config/redis.js";
+import { env } from "../../config/env.js";
 
 const zipQueue = new Queue("zip-generation", { connection: redis });
 
@@ -111,6 +112,91 @@ export async function getDownloadUrl(
     });
 
     res.json({ downloadUrl });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getMediaItem(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const clientId = req.user!.id;
+    const mediaId = req.params.id;
+
+    const media = await prisma.mediaItem.findUnique({
+      where: { id: mediaId },
+      include: {
+        gallery: {
+          select: {
+            id: true,
+            projectId: true,
+            status: true,
+            watermarkEnabled: true,
+            passwordHash: true,
+            expiresAt: true,
+          },
+        },
+      },
+    });
+
+    if (!media) {
+      throw new AppError("Media item not found", 404);
+    }
+
+    if (media.gallery.status !== "PUBLISHED") {
+      throw new AppError("Gallery not available", 404);
+    }
+
+    if (media.gallery.expiresAt && media.gallery.expiresAt < new Date()) {
+      throw new AppError("This gallery has expired", 410);
+    }
+
+    const access = await prisma.projectClient.findUnique({
+      where: {
+        projectId_clientId: { projectId: media.gallery.projectId, clientId },
+      },
+    });
+
+    if (!access) {
+      throw new AppError("Access denied", 403);
+    }
+
+    await ensureGalleryPasswordSession(
+      req,
+      media.gallery.id,
+      clientId,
+      media.gallery.passwordHash
+    );
+
+    const favorite = await prisma.favorite.findUnique({
+      where: { clientId_mediaItemId: { clientId, mediaItemId: mediaId } },
+    });
+
+    const cfDomain = env.AWS_CLOUDFRONT_DOMAIN;
+
+    res.json({
+      id: media.id,
+      galleryId: media.galleryId,
+      type: media.type,
+      filenameOriginal: media.filenameOriginal,
+      width: media.width,
+      height: media.height,
+      fileSizeBytes: media.fileSizeBytes,
+      blurhash: media.blurhash,
+      sortOrder: media.sortOrder,
+      isHighlight: media.isHighlight,
+      isFavorited: !!favorite,
+      thumbnailUrl: media.storageKeyThumbnail
+        ? `https://${cfDomain}/${media.storageKeyThumbnail}`
+        : null,
+      displayUrl:
+        media.gallery.watermarkEnabled && media.storageKeyWatermarked
+          ? `https://${cfDomain}/${media.storageKeyWatermarked}`
+          : `https://${cfDomain}/${media.storageKeyMedium}`,
+    });
   } catch (err) {
     next(err);
   }

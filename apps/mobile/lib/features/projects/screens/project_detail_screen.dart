@@ -61,7 +61,7 @@ class ProjectDetailNotifier extends StateNotifier<ProjectDetailState> {
           Project.fromJson(projectData['project'] ?? projectData);
 
       final galleriesRes =
-          await ApiClient.instance.get(Endpoints.galleries(slug));
+          await ApiClient.instance.get(Endpoints.projectGalleries(slug));
       final galData = galleriesRes.data;
       final List<dynamic> galItems = galData is Map
           ? (galData['galleries'] ?? galData['data'] ?? [])

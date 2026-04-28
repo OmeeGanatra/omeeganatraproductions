@@ -166,7 +166,7 @@ class AppTheme {
         color: AppColors.textPrimary,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.cardDark,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -260,7 +260,7 @@ class AppTheme {
       selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       unselectedLabelStyle: TextStyle(fontSize: 12),
     ),
-    tabBarTheme: TabBarTheme(
+    tabBarTheme: TabBarThemeData(
       labelColor: AppColors.gold,
       unselectedLabelColor: AppColors.textTertiary,
       indicatorColor: AppColors.gold,
@@ -336,7 +336,7 @@ class AppTheme {
         color: AppColors.textPrimaryLight,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.cardLight,
       elevation: 0,
       shape: RoundedRectangleBorder(

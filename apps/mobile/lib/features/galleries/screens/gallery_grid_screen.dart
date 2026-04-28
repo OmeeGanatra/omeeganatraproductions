@@ -49,23 +49,20 @@ class GalleryMediaNotifier extends StateNotifier<GalleryMediaState> {
       : super(const GalleryMediaState());
 
   final String galleryId;
-  String? _projectSlug;
 
   Future<void> load(String projectSlug) async {
-    _projectSlug = projectSlug;
     state = state.copyWith(isLoading: true);
 
     try {
       // Load gallery details
-      final galleryRes = await ApiClient.instance
-          .get(Endpoints.gallery(projectSlug, galleryId));
+      final galleryRes =
+          await ApiClient.instance.get(Endpoints.gallery(galleryId));
       final galData = galleryRes.data as Map<String, dynamic>;
-      final gallery =
-          Gallery.fromJson(galData['gallery'] ?? galData);
+      final gallery = Gallery.fromJson(galData['gallery'] ?? galData);
 
       // Load media items
-      final mediaRes = await ApiClient.instance
-          .get(Endpoints.media(projectSlug, galleryId));
+      final mediaRes =
+          await ApiClient.instance.get(Endpoints.galleryMedia(galleryId));
       final mData = mediaRes.data;
       final List<dynamic> items = mData is Map
           ? (mData['media'] ?? mData['data'] ?? [])
@@ -92,15 +89,19 @@ class GalleryMediaNotifier extends StateNotifier<GalleryMediaState> {
     if (index == -1) return;
 
     final item = state.media[index];
-    final updated = item.copyWith(isFavorited: !item.isFavorited);
+    final nowFavorited = !item.isFavorited;
     final newMedia = List<MediaItem>.from(state.media);
-    newMedia[index] = updated;
+    newMedia[index] = item.copyWith(isFavorited: nowFavorited);
     state = state.copyWith(media: newMedia);
 
     try {
-      await ApiClient.instance.post(Endpoints.toggleFavorite(mediaId));
+      if (nowFavorited) {
+        await ApiClient.instance
+            .post(Endpoints.addFavorite, data: {'mediaItemId': mediaId});
+      } else {
+        await ApiClient.instance.delete(Endpoints.removeFavorite(mediaId));
+      }
     } catch (_) {
-      // Revert on error
       newMedia[index] = item;
       state = state.copyWith(media: newMedia);
     }

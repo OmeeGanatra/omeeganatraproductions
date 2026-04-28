@@ -53,6 +53,25 @@ export async function listNotifications(
   }
 }
 
+export async function markAllRead(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const clientId = req.user!.id;
+
+    const result = await prisma.notification.updateMany({
+      where: { recipientClientId: clientId, isRead: false },
+      data: { isRead: true, readAt: new Date() },
+    });
+
+    res.json({ updated: result.count });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function markRead(
   req: Request,
   res: Response,

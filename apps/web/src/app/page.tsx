@@ -1,344 +1,263 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useScroll, useTransform, motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 
-/* --- Data --- */
-const services = [
-  {
-    num: "01",
-    title: "Luxury Wedding Photography",
-    desc: "Timeless moments captured with artistic precision and editorial elegance",
-  },
-  {
-    num: "02",
-    title: "Cinematic Wedding Films",
-    desc: "Your love story told through cinema-quality visuals and emotive storytelling",
-  },
-  {
-    num: "03",
-    title: "Pre-Wedding Shoots",
-    desc: "Stunning narratives in breathtaking locations across the world",
-  },
-  {
-    num: "04",
-    title: "Drone Cinematography",
-    desc: "Aerial perspectives that elevate every celebration to new heights",
-  },
-  {
-    num: "05",
-    title: "Fashion & Commercial Photography",
-    desc: "Bold, editorial photography for brands, portfolios, and publications",
-  },
+const PORTFOLIO = [
+  { title: "Monsoon Tide",       category: "Wedding",    year: "2026", tone: "1" },
+  { title: "Atlas — Spring '26", category: "Campaign",   year: "2026", tone: "2" },
+  { title: "House of Vrindavan", category: "Documentary",year: "2026", tone: "3" },
+  { title: "Fjord Chronograph",  category: "Product",    year: "2026", tone: "5" },
+  { title: "Wildflower",         category: "Wedding",    year: "2025", tone: "4" },
+  { title: "Sailcloth & Salt",   category: "Documentary",year: "2025", tone: "6" },
 ];
 
-/* --- Scroll Reveal Hook --- */
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+const STATS = [
+  ["12",   "Years behind the lens"],
+  ["186",  "Films delivered"],
+  ["97%",  "Repeat & referral"],
+  ["1:1",  "Director-led, always"],
+];
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setVisible(true);
-          observer.unobserve(el);
-        }
-      },
-      { threshold: 0.15 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+const MARQUEE_CLIENTS = [
+  "ATLAS APPAREL","VRINDAVAN","FJORD","KESTREL LIVE",
+  "TAJ HOTELS","RAW MANGO","NICOBAR","BOMBAY SHIRT CO.",
+];
 
-  return { ref, visible };
-}
-
-/* --- Reveal Wrapper (starts visible, enhances with animation) --- */
-function Reveal({
-  children,
-  className = "",
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const { ref, visible } = useReveal();
-  return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: 1,
-        transform: visible ? "translateY(0)" : "translateY(12px)",
-        transition: `transform 0.8s ease-out ${delay}ms`,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* ===============================================
-   HOME PAGE
-   =============================================== */
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const [now, setNow]           = useState<Date | null>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  const time = now
+    ? now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+    : "--:--:--";
+
   return (
-    <div className="relative min-h-screen">
-      {/* --- Navigation (visible immediately) --- */}
-      <nav
-        className={`fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-6 py-5 transition-all duration-500 md:px-12 lg:px-20 ${
-          scrolled ? "nav-blur py-4" : ""
-        }`}
+    <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+      {/* ═══════ TOP NAV ═══════ */}
+      <header
+        style={{
+          position: "sticky", top: 0, zIndex: 50,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "20px 40px",
+          background: scrolled ? "oklch(0.14 0.005 270 / 0.85)" : "transparent",
+          backdropFilter: scrolled ? "blur(20px)" : "none",
+          borderBottom: scrolled ? "1px solid var(--line-soft)" : "1px solid transparent",
+          transition: "all 300ms ease",
+        }}
       >
-        <div>
-          <Link href="/" className="group block">
-            <span
-              className="block font-serif text-base font-normal tracking-[0.3em] text-ivory"
-              style={{ letterSpacing: "0.3em" }}
-            >
-              OMEE GANATRA
-            </span>
-            <span className="block text-[9px] font-light tracking-[0.4em] text-ivory-muted">
-              PRODUCTIONS
-            </span>
-          </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--serif)", fontSize: 18 }}>
+          <Image src="/og-logo-white.png" alt="OGP" width={28} height={28} style={{ objectFit: "contain" }} />
+          <span style={{ color: "var(--fg)" }}>Omee Ganatra</span>
         </div>
+        <nav style={{ display: "flex", gap: 32 }}>
+          {["Work","Studio","Process","Journal","Contact"].map(x => (
+            <a key={x} href="#" style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-2)", textDecoration: "none" }}>{x}</a>
+          ))}
+        </nav>
+        <Link href="/login" className="ogp-btn" style={{ textDecoration: "none" }}>
+          Client Portal <span style={{ opacity: 0.6 }}>→</span>
+        </Link>
+      </header>
 
-        <div>
-          <Link
-            href="/login"
-            className="link-underline text-[11px] font-light tracking-[0.2em] text-ivory-muted transition-colors duration-300 hover:text-gold"
-          >
-            CLIENT PORTAL
-          </Link>
+      {/* ═══════ HERO ═══════ */}
+      <section className="ogp-view-in" style={{ padding: "80px 40px 60px" }}>
+        <div className="label-mono" style={{ marginBottom: 32 }}>
+          MMXXVI · MUMBAI · INDEPENDENT FILMMAKER
         </div>
-      </nav>
+        <h1 className="ogp-serif" style={{
+          fontSize: "clamp(64px, 11vw, 160px)",
+          lineHeight: 0.95, letterSpacing: "-0.03em", fontWeight: 400,
+          color: "var(--fg)",
+        }}>
+          Films for the<br />
+          <em style={{ color: "var(--accent)", fontStyle: "italic" }}>quiet, important</em><br />
+          moments.
+        </h1>
 
-      {/* --- Hero with real wedding photo background --- */}
-      <section ref={heroRef} className="relative flex h-screen items-center justify-center overflow-hidden">
-        {/* Background photo */}
-        <motion.div className="absolute inset-0" style={{ y: heroY }}>
-          <img
-            src="https://images.unsplash.com/photo-1519741497674-611481863552?w=1920&q=80"
-            alt="Wedding couple"
-            loading="eager"
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{ objectPosition: "center 30%" }}
-          />
-          {/* Dark overlay for text readability */}
-          <div className="absolute inset-0 bg-black/60" />
-          {/* Golden light leak - upper right */}
-          <div
-            className="absolute -right-32 -top-32 h-[700px] w-[700px] rounded-full opacity-15"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(201,169,110,0.4) 0%, rgba(201,169,110,0.1) 40%, transparent 70%)",
-            }}
-          />
-        </motion.div>
-
-        {/* Hero content (visible immediately) */}
-        <motion.div
-          className="relative z-10 flex flex-col items-center px-6 text-center"
-          style={{ opacity: heroOpacity }}
-        >
-          <h2 className="max-w-5xl font-serif text-5xl font-normal italic leading-[1.1] text-ivory md:text-7xl lg:text-[7rem]">
-            Capturing Timeless Moments
-          </h2>
-
-          {/* Thin line divider */}
-          <div className="my-8 h-px w-24 bg-gold md:my-10 md:w-32" />
-
-          <p className="text-[10px] font-light tracking-[0.35em] text-ivory-muted md:text-xs md:tracking-[0.4em]">
-            LUXURY WEDDING PHOTOGRAPHY & CINEMATIC FILMS
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 80, marginTop: 80, alignItems: "end" }}>
+          <p style={{ fontSize: 18, lineHeight: 1.6, color: "var(--fg-2)", maxWidth: 560 }}>
+            A small studio building cinematic portraits of weddings, brands, and lives in motion.
+            Every frame considered. Every cut earned. Delivered through a private vault you control.
           </p>
-
-          <div className="mt-12 md:mt-16">
-            <Link
-              href="/login"
-              className="link-underline text-[11px] font-light tracking-[0.2em] text-gold transition-colors duration-300 hover:text-gold-light"
-            >
-              View Your Gallery&ensp;&rarr;
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="h-10 w-[1px] bg-gradient-to-b from-transparent via-ivory-muted/40 to-transparent"
-          />
-        </div>
-      </section>
-
-      {/* --- Cinematic Reel Section with real photo background --- */}
-      <section className="relative overflow-hidden px-6 py-32 md:py-44">
-        <div className="mx-auto max-w-6xl">
-          <Reveal>
-            <div className="aspect-cinematic relative flex items-center justify-center overflow-hidden rounded-sm">
-              {/* Background image */}
-              <img
-                src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1920&q=80"
-                alt="Wedding ceremony"
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              {/* Dark overlay */}
-              <div className="absolute inset-0 bg-black/60" />
-              {/* Subtle golden vignette */}
-              <div
-                className="absolute inset-0 opacity-30"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at center, rgba(201,169,110,0.08) 0%, transparent 70%)",
-                }}
-              />
-              <div className="relative z-10 px-8 text-center">
-                <p className="font-serif text-2xl italic leading-relaxed text-ivory/90 md:text-4xl lg:text-5xl">
-                  Every love story deserves
-                  <br />
-                  to be told beautifully
-                </p>
-              </div>
-              {/* Border overlay */}
-              <div className="absolute inset-0 rounded-sm border border-border-light/50" />
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* --- Services --- */}
-      <section className="relative px-6 py-24 md:px-12 md:py-32 lg:px-20">
-        <div className="mx-auto max-w-5xl">
-          <Reveal>
-            <div className="mb-20 text-center">
-              <span className="text-[10px] font-light tracking-[0.4em] text-ivory-muted">
-                WHAT WE OFFER
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--fg-3)" }}>STATUS</span>
+              <span>
+                <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 3, background: "var(--ok)", marginRight: 8, verticalAlign: "middle" }} />
+                Booking 2026 — limited
               </span>
-              <h3 className="mt-4 font-serif text-3xl font-normal text-ivory md:text-4xl">
-                Our Expertise
-              </h3>
-              <div className="mx-auto mt-6 h-px w-16 bg-gold" />
             </div>
-          </Reveal>
-
-          {/* Service rows */}
-          <div>
-            {services.map((s, i) => (
-              <Reveal key={s.num} delay={i * 80}>
-                <div className="service-row group flex items-baseline gap-6 border-t border-border-light/40 py-8 md:gap-10 md:py-10">
-                  <span className="service-number shrink-0 font-serif text-lg text-ivory-muted/40 transition-colors duration-400 md:text-xl">
-                    {s.num}
-                  </span>
-                  <div className="flex-1">
-                    <h4 className="service-title font-serif text-xl text-ivory transition-colors duration-400 md:text-2xl lg:text-3xl">
-                      {s.title}
-                    </h4>
-                    <p className="mt-2 text-sm font-light text-ivory-muted/70">
-                      {s.desc}
-                    </p>
-                  </div>
-                  <span className="hidden text-sm text-ivory-muted/0 transition-all duration-400 group-hover:text-ivory-muted/50 md:block">
-                    &rarr;
-                  </span>
-                </div>
-              </Reveal>
-            ))}
-            {/* Final border */}
-            <div className="border-t border-border-light/40" />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--fg-3)" }}>LOCAL TIME</span>
+              <span>{time} IST</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--fg-3)" }}>BASED</span>
+              <span>19.0760° N · 72.8777° E</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* --- Testimonial --- */}
-      <section className="relative overflow-hidden px-6 py-32 md:py-44">
-        <Reveal>
-          <div className="mx-auto max-w-4xl text-center">
-            {/* Ornament */}
-            <div className="ornament mb-12">
-              <span className="text-gold" style={{ fontSize: "8px" }}>&#9670;</span>
-            </div>
-
-            <blockquote className="font-serif text-2xl italic leading-relaxed text-ivory/90 md:text-3xl lg:text-4xl">
-              &ldquo;The photographs were beyond anything we imagined.
-              <br className="hidden md:block" />
-              Every single frame is a work of art.&rdquo;
-            </blockquote>
-
-            <div className="mt-10">
-              <div className="mx-auto mb-4 h-px w-10 bg-gold/40" />
-              <p className="text-[11px] font-light tracking-[0.3em] text-ivory-muted">
-                A CHERISHED CLIENT
-              </p>
-            </div>
+      {/* ═══════ REEL ═══════ */}
+      <section style={{ padding: "40px 40px 80px" }}>
+        <div style={{
+          position: "relative", aspectRatio: "21 / 9", borderRadius: 18,
+          overflow: "hidden", border: "1px solid var(--line-soft)", background: "var(--bg-2)",
+        }}>
+          <video autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }}>
+            <source src="/og-logo.mp4" type="video/mp4" />
+          </video>
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(ellipse at center, transparent 30%, oklch(0 0 0 / 0.55) 100%)",
+            pointerEvents: "none",
+          }} />
+          <div className="ogp-mono" style={{
+            position: "absolute", top: 20, left: 20,
+            fontSize: 11, color: "oklch(1 0 0 / 0.7)", letterSpacing: "0.14em",
+            display: "flex", gap: 16, alignItems: "center",
+          }}>
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: "var(--danger)" }} />
+            REC · 00:01:24:08
           </div>
-        </Reveal>
+          <div className="ogp-mono" style={{
+            position: "absolute", top: 20, right: 20,
+            fontSize: 11, color: "oklch(1 0 0 / 0.7)", letterSpacing: "0.14em",
+          }}>REEL 2026 · ARRI · 4K</div>
+          <div style={{
+            position: "absolute", bottom: 24, left: 24, right: 24,
+            display: "flex", justifyContent: "space-between", alignItems: "flex-end",
+          }}>
+            <div>
+              <div className="label-mono" style={{ marginBottom: 8, color: "oklch(1 0 0 / 0.6)" }}>NOW PLAYING</div>
+              <div className="ogp-serif" style={{ fontSize: 36, color: "white" }}>The 2026 Reel</div>
+            </div>
+            <button className="ogp-btn ogp-btn-primary">▶ Watch Full Reel</button>
+          </div>
+        </div>
       </section>
 
-      {/* --- Client Portal CTA --- */}
-      <section className="relative px-6 py-32 md:py-44">
-        <Reveal>
-          <div className="mx-auto max-w-2xl text-center">
-            <h3 className="font-serif text-3xl font-normal text-ivory md:text-5xl lg:text-6xl">
-              Your Gallery Awaits
-            </h3>
-            <p className="mt-6 text-sm font-light leading-relaxed text-ivory-muted">
-              Log in to access your private collection of memories,
-              <br className="hidden md:block" />
-              carefully curated and delivered in stunning resolution.
-            </p>
-            <div className="mt-10">
-              <Link
-                href="/login"
-                className="link-underline text-[11px] font-light tracking-[0.2em] text-gold transition-colors duration-300 hover:text-gold-light"
-              >
-                Enter Portal&ensp;&rarr;
-              </Link>
+      {/* ═══════ MARQUEE ═══════ */}
+      <section style={{
+        padding: "40px 0",
+        borderTop: "1px solid var(--line-soft)", borderBottom: "1px solid var(--line-soft)",
+        overflow: "hidden", whiteSpace: "nowrap",
+      }}>
+        <div style={{ display: "inline-flex", gap: 64, animation: "ogp-marquee 40s linear infinite" }}>
+          {[...Array(2)].map((_, i) => (
+            <div key={i} style={{ display: "inline-flex", gap: 64 }}>
+              {MARQUEE_CLIENTS.map(c => (
+                <span key={c} className="ogp-serif" style={{ fontSize: 28, color: "var(--fg-3)" }}>{c}</span>
+              ))}
             </div>
-          </div>
-        </Reveal>
+          ))}
+        </div>
       </section>
 
-      {/* --- Footer --- */}
-      <footer className="relative px-6 pb-12 pt-20">
-        <div className="hr-gold mx-auto max-w-5xl" />
+      {/* ═══════ SELECTED WORK ═══════ */}
+      <section style={{ padding: "100px 40px 40px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 48 }}>
+          <div>
+            <div className="label-mono" style={{ marginBottom: 16 }}>§ 01 — SELECTED WORK</div>
+            <h2 className="ogp-serif" style={{ fontSize: 56, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--fg)" }}>
+              Six films. <em style={{ color: "var(--fg-3)" }}>One year.</em>
+            </h2>
+          </div>
+          <a href="#" className="ogp-mono" style={{
+            fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase",
+            color: "var(--fg-2)", borderBottom: "1px solid var(--line)", paddingBottom: 4,
+          }}>View archive (47) →</a>
+        </div>
 
-        <div className="mx-auto mt-12 max-w-5xl text-center">
-          <span
-            className="font-serif text-sm font-normal tracking-[0.3em] text-ivory-muted/60"
-          >
-            OMEE GANATRA PRODUCTIONS
-          </span>
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 1,
+          background: "var(--line-soft)", border: "1px solid var(--line-soft)",
+          borderRadius: 12, overflow: "hidden",
+        }}>
+          {PORTFOLIO.map((p, i) => (
+            <div
+              key={p.title}
+              className="ogp-ph"
+              data-tone={p.tone}
+              style={{
+                gridColumn: i === 0 ? "span 4" : i === 1 ? "span 2" : "span 3",
+                aspectRatio: i === 0 ? "16 / 9" : "4 / 3",
+                position: "relative", cursor: "pointer",
+              }}
+            >
+              <div style={{
+                position: "absolute", inset: 0, padding: 24,
+                display: "flex", flexDirection: "column", justifyContent: "space-between",
+                background: "linear-gradient(180deg, transparent 50%, oklch(0 0 0 / 0.6) 100%)",
+              }}>
+                <div className="ogp-mono" style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "oklch(1 0 0 / 0.7)" }}>
+                  {String(i + 1).padStart(2, "0")} / {p.category} / {p.year}
+                </div>
+                <div className="ogp-serif" style={{ fontSize: i === 0 ? 48 : 26, color: "white", lineHeight: 1.1 }}>
+                  {p.title}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <p className="mt-4 text-[10px] tracking-[0.2em] text-ivory-muted/30">
-            &copy; {new Date().getFullYear()}
-          </p>
+      {/* ═══════ STATS ═══════ */}
+      <section style={{
+        padding: "100px 40px",
+        display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr",
+        borderTop: "1px solid var(--line-soft)", marginTop: 80,
+      }}>
+        {STATS.map(([n, l], i) => (
+          <div key={i} style={{ padding: "8px 24px", borderLeft: i ? "1px solid var(--line-soft)" : "none" }}>
+            <div className="ogp-serif" style={{ fontSize: 96, lineHeight: 1, color: "var(--fg)", fontWeight: 400 }}>{n}</div>
+            <div style={{ marginTop: 16, color: "var(--fg-3)", fontSize: 13 }}>{l}</div>
+          </div>
+        ))}
+      </section>
 
-          <p className="mt-8 text-[10px] font-light tracking-[0.15em] text-ivory-muted/25">
-            Crafted with love in India
-          </p>
+      {/* ═══════ CTA ═══════ */}
+      <section style={{ padding: "120px 40px", textAlign: "center" }}>
+        <div className="label-mono" style={{ marginBottom: 24 }}>§ — ENQUIRE</div>
+        <h2 className="ogp-serif" style={{
+          fontSize: "clamp(48px, 8vw, 120px)", fontWeight: 400,
+          letterSpacing: "-0.02em", lineHeight: 1, color: "var(--fg)",
+        }}>
+          Tell us about<br />
+          <em style={{ color: "var(--accent)" }}>the moment.</em>
+        </h2>
+        <button className="ogp-btn ogp-btn-primary" style={{ marginTop: 48, padding: "16px 32px", fontSize: 13 }}>
+          Begin a conversation →
+        </button>
+        <div style={{ marginTop: 32, color: "var(--fg-3)", fontSize: 13 }}>
+          studio@omeeganatra.com · +91 98 2024 1985
+        </div>
+      </section>
+
+      {/* ═══════ FOOTER ═══════ */}
+      <footer style={{ padding: "40px", borderTop: "1px solid var(--line-soft)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="ogp-mono" style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--fg-3)" }}>
+          © OMEE GANATRA PRODUCTIONS · MMXXVI · ALL FRAMES RESERVED
+        </div>
+        <div style={{ display: "flex", gap: 24 }}>
+          {["Instagram","Vimeo","Behance"].map(s => (
+            <a key={s} href="#" className="ogp-mono" style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-3)", textDecoration: "none" }}>{s}</a>
+          ))}
         </div>
       </footer>
     </div>

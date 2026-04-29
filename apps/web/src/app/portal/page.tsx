@@ -26,28 +26,195 @@ interface Project {
   }>;
 }
 
-const eventTypeLabels: Record<string, string> = {
-  WEDDING: "Wedding",
-  ENGAGEMENT: "Engagement",
-  PORTRAIT: "Portrait Session",
-  COMMERCIAL: "Commercial Shoot",
-  OTHER: "Photography",
+type StatusKey = "delivered" | "edit" | "color" | "shoot" | "pre";
+
+const STATUS_META: Record<StatusKey, { label: string; color: string }> = {
+  delivered: { label: "DELIVERED", color: "var(--ok)" },
+  edit: { label: "IN EDIT", color: "oklch(0.65 0.15 240)" },
+  color: { label: "COLOR", color: "var(--accent)" },
+  shoot: { label: "SHOOT", color: "var(--fg-3)" },
+  pre: { label: "PRE-PROD", color: "var(--line)" },
 };
 
-/* Default Unsplash images for gallery cards based on title keywords */
-function getDefaultGalleryImage(title: string): string {
-  const lower = title.toLowerCase();
-  if (lower.includes("haldi")) return "https://images.unsplash.com/photo-1583089892943-e02e5b017b6a?w=800&q=80";
-  if (lower.includes("mehendi") || lower.includes("mehndi")) return "https://images.unsplash.com/photo-1604604557938-1b3e3f7e2f68?w=800&q=80";
-  if (lower.includes("wedding") || lower.includes("ceremony") || lower.includes("shaadi")) return "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80";
-  if (lower.includes("reception") || lower.includes("sangeet") || lower.includes("party")) return "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80";
-  return "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80";
+function mapStatus(status: string): StatusKey {
+  switch (status.toUpperCase()) {
+    case "DELIVERED":
+    case "COMPLETED":
+      return "delivered";
+    case "IN_PROGRESS":
+    case "ACTIVE":
+      return "edit";
+    case "COLOR":
+      return "color";
+    case "SHOOT":
+      return "shoot";
+    case "PLANNING":
+    case "DRAFT":
+    default:
+      return "pre";
+  }
+}
+
+function ProjectCard({ project }: { project: Project }) {
+  const statusKey = mapStatus(project.status);
+  const meta = STATUS_META[statusKey];
+  // Simulated progress value: delivered = 100, edit = 65, color = 40, shoot = 20, pre = 5
+  const progressMap: Record<StatusKey, number> = {
+    delivered: 100,
+    edit: 65,
+    color: 40,
+    shoot: 20,
+    pre: 5,
+  };
+  const progress = progressMap[statusKey];
+
+  return (
+    <Link
+      href={`/portal/project/${project.slug}`}
+      style={{ textDecoration: "none", display: "block" }}
+    >
+      <div
+        className="ogp-frame ogp-view-in"
+        style={{
+          borderRadius: 10,
+          overflow: "hidden",
+          cursor: "pointer",
+          transition: "border-color 0.2s",
+        }}
+      >
+        {/* Cover thumbnail */}
+        <div
+          className="ogp-ph"
+          data-tone="2"
+          style={{
+            position: "relative",
+            height: 180,
+            background: "var(--bg-3)",
+            overflow: "hidden",
+          }}
+        >
+          {project.coverImageUrl && (
+            <img
+              src={project.coverImageUrl}
+              alt={project.title}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: 0.7,
+              }}
+              loading="lazy"
+            />
+          )}
+          {/* Status chip */}
+          <div
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              background: "rgba(0,0,0,0.7)",
+              backdropFilter: "blur(6px)",
+              border: "1px solid var(--line-soft)",
+              borderRadius: 99,
+              padding: "3px 8px",
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: meta.color,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="label-mono"
+              style={{ fontSize: 9, color: "var(--fg-2)", letterSpacing: "0.1em" }}
+            >
+              {meta.label}
+            </span>
+          </div>
+        </div>
+
+        {/* Card body */}
+        <div style={{ padding: "12px 14px 14px" }}>
+          {/* Progress bar */}
+          <div
+            style={{
+              height: 2,
+              background: "var(--bg-3)",
+              borderRadius: 99,
+              marginBottom: 10,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${progress}%`,
+                background: progress === 100 ? "var(--ok)" : "var(--accent)",
+                borderRadius: 99,
+                transition: "width 0.6s ease",
+              }}
+            />
+          </div>
+
+          <h3
+            className="ogp-serif"
+            style={{
+              fontSize: 16,
+              color: "var(--fg)",
+              marginBottom: 4,
+              lineHeight: 1.3,
+            }}
+          >
+            {project.title}
+          </h3>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {project.eventType && (
+              <span
+                className="label-mono"
+                style={{ fontSize: 10, color: "var(--fg-3)", letterSpacing: "0.08em" }}
+              >
+                {project.eventType}
+              </span>
+            )}
+            {project.city && (
+              <>
+                <span style={{ color: "var(--line)", fontSize: 10 }}>·</span>
+                <span style={{ fontSize: 11, color: "var(--fg-3)" }}>{project.city}</span>
+              </>
+            )}
+            {project.eventDate && (
+              <>
+                <span style={{ color: "var(--line)", fontSize: 10 }}>·</span>
+                <span style={{ fontSize: 11, color: "var(--fg-3)" }}>
+                  {new Date(project.eventDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 }
 
 export default function PortalDashboard() {
   const { user } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -59,239 +226,355 @@ export default function PortalDashboard() {
       setProjects(data.data || data || []);
     } catch (err) {
       console.error("Failed to load projects:", err);
+      setError("Could not load projects.");
     } finally {
       setLoading(false);
     }
   };
 
-  const totalPhotos = projects.reduce(
-    (sum, p) => sum + p.galleries.reduce((gs, g) => gs + g.mediaCount, 0),
-    0
-  );
-
   const firstName = user?.fullName?.split(" ")[0] || "Guest";
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
+  const heroProject = projects[0];
+  const gridProjects = projects.slice(1);
 
   if (loading) {
     return (
-      <div className="flex min-h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-px w-12 animate-pulse bg-gold/40" />
-          <p className="text-[11px] uppercase tracking-[0.25em] text-ivory-muted">
-            Loading your gallery
-          </p>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "80vh",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 1,
+            background: "var(--accent)",
+            opacity: 0.4,
+            animation: "pulse 1.5s ease-in-out infinite",
+          }}
+        />
+        <p
+          className="label-mono"
+          style={{ fontSize: 10, color: "var(--fg-3)", letterSpacing: "0.25em" }}
+        >
+          LOADING YOUR PROJECTS
+        </p>
       </div>
     );
   }
 
-  // Get the primary project (first one) for the hero
-  const primaryProject = projects[0];
-  const additionalProjects = projects.slice(1);
+  if (error) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "80vh",
+        }}
+      >
+        <p style={{ fontSize: 13, color: "var(--danger)" }}>{error}</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* --- Hero Greeting --- */}
-      {primaryProject ? (
-        <section className="relative flex min-h-[70vh] items-end overflow-hidden">
-          {/* Background */}
-          {primaryProject.coverImageUrl ? (
-            <>
+    <div style={{ padding: "32px 32px 64px" }}>
+      {/* Header bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 32,
+        }}
+      >
+        <div>
+          <p
+            className="label-mono"
+            style={{ fontSize: 10, color: "var(--fg-3)", letterSpacing: "0.15em", marginBottom: 4 }}
+          >
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            }).toUpperCase()}
+          </p>
+          <h1
+            className="ogp-serif"
+            style={{ fontSize: 28, color: "var(--fg)", fontWeight: 400 }}
+          >
+            Welcome back, {firstName}.
+          </h1>
+        </div>
+
+        {/* Search */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "var(--bg-2)",
+            border: "1px solid var(--line-soft)",
+            borderRadius: 8,
+            padding: "8px 12px",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--fg-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            placeholder="Search projects…"
+            style={{
+              background: "none",
+              border: "none",
+              outline: "none",
+              fontSize: 12,
+              color: "var(--fg)",
+              width: 160,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Hero project card */}
+      {heroProject && (
+        <div
+          className="ogp-frame"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            borderRadius: 12,
+            overflow: "hidden",
+            marginBottom: 32,
+            minHeight: 320,
+          }}
+        >
+          {/* Left: cover + play overlay */}
+          <div
+            className="ogp-ph"
+            data-tone="1"
+            style={{
+              position: "relative",
+              background: "var(--bg-3)",
+              overflow: "hidden",
+            }}
+          >
+            {heroProject.coverImageUrl && (
               <img
-                src={primaryProject.coverImageUrl}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
+                src={heroProject.coverImageUrl}
+                alt={heroProject.title}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  opacity: 0.6,
+                }}
                 loading="eager"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/20" />
-              <div className="absolute inset-0 bg-gradient-to-r from-bg/50 to-transparent" />
-            </>
-          ) : (
-            <>
-              <img
-                src="https://images.unsplash.com/photo-1519741497674-611481863552?w=1920&q=80"
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                loading="eager"
+            )}
+
+            {/* Play button */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  border: "1.5px solid rgba(255,255,255,0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backdropFilter: "blur(4px)",
+                  background: "rgba(0,0,0,0.3)",
+                  cursor: "pointer",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style={{ marginLeft: 2 }}>
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </div>
+            </div>
+
+            {/* "READY · 4K MASTER" label */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 14,
+                left: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(0,0,0,0.7)",
+                backdropFilter: "blur(6px)",
+                border: "1px solid var(--line-soft)",
+                borderRadius: 99,
+                padding: "4px 10px",
+              }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: "var(--ok)",
+                  flexShrink: 0,
+                }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/20" />
-              <div className="absolute inset-0 bg-gradient-to-r from-bg/50 to-transparent" />
-            </>
-          )}
-
-          {/* Content (visible immediately) */}
-          <div className="relative w-full px-6 pb-16 pt-32 md:px-16 lg:px-24">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-ivory-muted">
-                Welcome back
-              </p>
-              <h1 className="mt-3 font-serif text-5xl font-light italic text-ivory md:text-6xl lg:text-7xl">
-                {firstName}
-              </h1>
-            </div>
-
-            <div>
-              <div className="mt-8 flex items-center gap-4">
-                <div className="h-px w-8 bg-gold/60" />
-                <p className="text-[11px] font-medium uppercase tracking-[0.25em] text-gold">
-                  {primaryProject.title}
-                </p>
-              </div>
-
-              {(primaryProject.eventDate || primaryProject.venue) && (
-                <p className="mt-3 text-[11px] tracking-wide text-ivory-muted">
-                  {primaryProject.eventDate &&
-                    formatDate(primaryProject.eventDate)}
-                  {primaryProject.eventDate && primaryProject.venue && (
-                    <span className="mx-3 text-border-light">|</span>
-                  )}
-                  {primaryProject.venue}
-                  {primaryProject.city ? `, ${primaryProject.city}` : ""}
-                </p>
-              )}
+              <span
+                className="label-mono"
+                style={{ fontSize: 9, color: "var(--fg-2)", letterSpacing: "0.12em" }}
+              >
+                READY · 4K MASTER
+              </span>
             </div>
           </div>
-        </section>
-      ) : (
-        /* No projects state */
-        <section className="flex min-h-[60vh] items-center justify-center px-6">
-          <div className="text-center">
-            <h1 className="font-serif text-4xl font-light italic text-ivory md:text-5xl">
-              Welcome, {firstName}
-            </h1>
-            <div className="mx-auto mt-6 h-px w-12 bg-gold/40" />
-            <p className="mx-auto mt-6 max-w-md text-[13px] leading-relaxed text-ivory-muted">
-              Your gallery is being carefully curated. You will receive a
-              notification when your photos and films are ready.
+
+          {/* Right: project details */}
+          <div
+            style={{
+              padding: "32px 28px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              background: "var(--bg-2)",
+            }}
+          >
+            <p
+              className="label-mono"
+              style={{
+                fontSize: 9,
+                color: "var(--accent)",
+                letterSpacing: "0.18em",
+                marginBottom: 12,
+              }}
+            >
+              YOUR LATEST DELIVERY
             </p>
-          </div>
-        </section>
-      )}
-
-      {/* --- Gallery Preview Grid --- */}
-      {primaryProject && primaryProject.galleries.length > 0 && (
-        <section className="px-6 pb-24 pt-16 md:px-16 lg:px-24">
-          <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
-            {primaryProject.galleries.map((gallery) => (
-              <div key={gallery.id}>
-                <Link
-                  href={`/portal/gallery/${gallery.id}`}
-                  className="img-zoom group relative block overflow-hidden"
-                  style={{ minHeight: "340px" }}
-                >
-                  {/* Gallery Image - always show an image */}
-                  <img
-                    src={gallery.coverImageUrl || getDefaultGalleryImage(gallery.title)}
-                    alt={gallery.title}
-                    className="h-full min-h-[340px] w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
-                    loading="lazy"
-                  />
-
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-90" />
-
-                  {/* Text */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                    <h3 className="font-serif text-xl font-light text-ivory md:text-2xl">
-                      {gallery.title}
-                    </h3>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-ivory-muted">
-                      {gallery.mediaCount}{" "}
-                      {gallery.mediaCount === 1 ? "photo" : "photos"}
-                    </p>
-                  </div>
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          {/* --- Quick Actions (visible immediately) --- */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-12">
-            <Link
-              href={`/portal/project/${primaryProject.slug}`}
-              className="link-underline text-[11px] uppercase tracking-[0.2em] text-ivory-muted transition-colors hover:text-ivory"
+            <h2
+              className="ogp-serif"
+              style={{ fontSize: 28, color: "var(--fg)", lineHeight: 1.2, marginBottom: 12 }}
             >
-              View All Photos
-            </Link>
-            <Link
-              href="/portal/films"
-              className="link-underline text-[11px] uppercase tracking-[0.2em] text-ivory-muted transition-colors hover:text-ivory"
-            >
-              Watch Film
-            </Link>
-            <Link
-              href="/portal/downloads"
-              className="link-underline text-[11px] uppercase tracking-[0.2em] text-ivory-muted transition-colors hover:text-ivory"
-            >
-              Download Album
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {/* --- Additional Projects --- */}
-      {additionalProjects.map((project) => (
-        <section key={project.id} className="px-6 pb-24 md:px-16 lg:px-24">
-          {/* Divider */}
-          <div className="mb-16 flex items-center justify-center">
-            <hr className="hr-gold w-full max-w-xs" />
-          </div>
-
-          {/* Project Header (visible immediately) */}
-          <div className="mb-10">
-            <p className="text-[11px] font-medium uppercase tracking-[0.25em] text-gold">
-              {project.title}
-            </p>
-            {(project.eventDate || project.venue) && (
-              <p className="mt-2 text-[11px] tracking-wide text-ivory-muted">
-                {project.eventDate && formatDate(project.eventDate)}
-                {project.eventDate && project.venue && (
-                  <span className="mx-3 text-border-light">|</span>
-                )}
-                {project.venue}
-                {project.city ? `, ${project.city}` : ""}
+              {heroProject.title}
+            </h2>
+            {heroProject.description && (
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--fg-2)",
+                  lineHeight: 1.6,
+                  marginBottom: 16,
+                }}
+              >
+                {heroProject.description}
               </p>
             )}
-          </div>
 
-          {/* Gallery Grid */}
-          <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
-            {project.galleries.map((gallery) => (
-              <div key={gallery.id}>
-                <Link
-                  href={`/portal/gallery/${gallery.id}`}
-                  className="img-zoom group relative block overflow-hidden"
-                  style={{ minHeight: "340px" }}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 24,
+              }}
+            >
+              {heroProject.galleries.length > 0 && (
+                <span
+                  className="label-mono"
+                  style={{ fontSize: 10, color: "var(--fg-3)", letterSpacing: "0.08em" }}
                 >
-                  <img
-                    src={gallery.coverImageUrl || getDefaultGalleryImage(gallery.title)}
-                    alt={gallery.title}
-                    className="h-full min-h-[340px] w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-90" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                    <h3 className="font-serif text-xl font-light text-ivory md:text-2xl">
-                      {gallery.title}
-                    </h3>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-ivory-muted">
-                      {gallery.mediaCount}{" "}
-                      {gallery.mediaCount === 1 ? "photo" : "photos"}
-                    </p>
-                  </div>
-                </Link>
-              </div>
+                  {heroProject.galleries.reduce((s, g) => s + g.mediaCount, 0)} PHOTOS
+                </span>
+              )}
+              {heroProject.eventDate && (
+                <>
+                  <span style={{ color: "var(--line-soft)", fontSize: 10 }}>·</span>
+                  <span style={{ fontSize: 11, color: "var(--fg-3)" }}>
+                    {new Date(heroProject.eventDate).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <Link
+              href={`/portal/project/${heroProject.slug}`}
+              className="ogp-btn ogp-btn-accent"
+              style={{ alignSelf: "flex-start", textDecoration: "none" }}
+            >
+              Open project →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* No projects state */}
+      {!heroProject && (
+        <div
+          className="ogp-frame"
+          style={{
+            padding: "64px 32px",
+            textAlign: "center",
+            borderRadius: 12,
+            marginBottom: 32,
+          }}
+        >
+          <h2
+            className="ogp-serif"
+            style={{ fontSize: 24, color: "var(--fg)", marginBottom: 12 }}
+          >
+            Your project gallery is being prepared.
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--fg-3)", lineHeight: 1.6 }}>
+            You'll receive a notification when your deliverables are ready.
+          </p>
+        </div>
+      )}
+
+      {/* Project grid */}
+      {gridProjects.length > 0 && (
+        <div>
+          <p
+            className="label-mono"
+            style={{
+              fontSize: 9,
+              color: "var(--fg-3)",
+              letterSpacing: "0.15em",
+              marginBottom: 16,
+            }}
+          >
+            ALL PROJECTS
+          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {gridProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
             ))}
           </div>
-        </section>
-      ))}
+        </div>
+      )}
     </div>
   );
 }

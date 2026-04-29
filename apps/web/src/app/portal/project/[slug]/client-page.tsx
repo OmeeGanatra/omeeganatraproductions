@@ -2,17 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Calendar,
-  MapPin,
-  Image,
-  Film,
-  Share2,
-  Clock,
-} from "lucide-react";
 import api from "@/lib/api";
 
 interface Gallery {
@@ -22,8 +12,19 @@ interface Gallery {
   description?: string;
   coverImageUrl?: string;
   mediaCount: number;
-  status: string;
   sortOrder: number;
+  hasPassword?: boolean;
+}
+
+interface TimelineEvent {
+  id: string;
+  title: string;
+  description?: string;
+  eventTime: string;
+  endTime?: string;
+  location?: string;
+  icon?: string;
+  galleryId?: string;
 }
 
 interface ProjectDetail {
@@ -36,40 +37,40 @@ interface ProjectDetail {
   venue?: string;
   city?: string;
   coverImageUrl?: string;
+  clientRole?: string;
   galleries: Gallery[];
-  weddingTimelineEvents?: Array<{
-    id: string;
-    title: string;
-    description?: string;
-    eventTime: string;
-    location?: string;
-    icon?: string;
-    galleryId?: string;
-  }>;
+  weddingTimelineEvents?: TimelineEvent[];
+  status: string;
 }
 
-const eventIcons: Record<string, string> = {
-  ring: "💍",
-  cake: "🎂",
-  camera: "📷",
-  flower: "🌸",
-  music: "🎵",
-  dance: "💃",
-  food: "🍽️",
-  pray: "🙏",
-};
+function statusKey(s: string) {
+  switch ((s || "").toUpperCase()) {
+    case "DELIVERED": return "delivered";
+    case "IN_PROGRESS": case "ACTIVE": return "edit";
+    case "COLOR": return "color";
+    case "SHOOTING": return "shoot";
+    default: return "pre";
+  }
+}
 
 export default function ProjectDetailPage() {
-  const params = useParams();
-  const slug = params?.slug as string;
+  const params  = useParams();
+  const slug    = params?.slug as string;
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab]     = useState<"film" | "gallery" | "timeline" | "notes">("film");
+  const [playing, setPlaying]  = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (slug) loadProject();
-  }, [slug]);
+    if (!playing) return;
+    const t = setInterval(() => setProgress(x => (x + 0.5) % 100), 150);
+    return () => clearInterval(t);
+  }, [playing]);
 
-  const loadProject = async () => {
+  useEffect(() => { if (slug) load(); }, [slug]);
+
+  const load = async () => {
     try {
       const { data } = await api.get(`/portal/projects/${slug}`);
       setProject(data.data || data);
@@ -80,14 +81,20 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const tc = (pct: number) => {
+    const total = 14 * 60 + 32;
+    const s = Math.floor(total * pct / 100);
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  };
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-48 animate-pulse rounded-2xl bg-surface" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-52 animate-pulse rounded-2xl bg-surface" />
-          ))}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 40, height: 1, background: "var(--accent)", margin: "0 auto 16px" }} />
+          <div className="ogp-mono" style={{ fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--fg-3)" }}>
+            LOADING PROJECT
+          </div>
         </div>
       </div>
     );
@@ -95,182 +102,270 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-cream-muted">Project not found</p>
-        <Link href="/portal" className="mt-4 text-sm text-gold hover:underline">
-          Back to Dashboard
-        </Link>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
+        <div className="ogp-serif" style={{ fontSize: 24, color: "var(--fg-2)" }}>Project not found</div>
+        <Link href="/portal" className="ogp-btn" style={{ marginTop: 24, textDecoration: "none" }}>← Back to dashboard</Link>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl border border-border"
-      >
-        <div className="relative h-48 bg-gradient-to-br from-charcoal to-dark md:h-64">
-          {project.coverImageUrl && (
-            <img
-              src={project.coverImageUrl}
-              alt={project.title}
-              className="h-full w-full object-cover opacity-60"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent" />
-        </div>
+  const sk = statusKey(project.status);
+  const eventDate = project.eventDate
+    ? new Date(project.eventDate).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "2-digit" }).replace(/\//g, ".")
+    : "—";
 
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-          <Link
-            href="/portal"
-            className="mb-3 inline-flex items-center gap-1 text-xs text-gold hover:underline"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            Back to Dashboard
+  return (
+    <div className="ogp-view-in" style={{ minHeight: "100vh", background: "var(--bg)" }}>
+
+      {/* ═══ TOP BAR ═══ */}
+      <header style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "20px 40px", borderBottom: "1px solid var(--line-soft)",
+        position: "sticky", top: 0, zIndex: 30,
+        background: "oklch(0.14 0.005 270 / 0.9)", backdropFilter: "blur(20px)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <Link href="/portal" className="ogp-mono" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-2)", textDecoration: "none" }}>
+            ← All projects
           </Link>
-          <h1 className="font-serif text-3xl font-bold text-cream md:text-4xl">
-            {project.title}
-          </h1>
-          {project.description && (
-            <p className="mt-2 max-w-xl text-sm text-cream-muted">
-              {project.description}
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-cream-muted">
-            {project.eventDate && (
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-gold" />
-                {new Date(project.eventDate).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-            )}
-            {project.venue && (
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-gold" />
-                {project.venue}
-                {project.city ? `, ${project.city}` : ""}
-              </span>
-            )}
+          <div style={{ width: 1, height: 16, background: "var(--line)" }} />
+          <div className="ogp-mono" style={{ fontSize: 11, color: "var(--fg-3)", letterSpacing: "0.1em" }}>
+            VAULT / {project.clientRole?.toUpperCase() ?? "CLIENT"} / {project.title.toUpperCase()}
           </div>
         </div>
-      </motion.div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="ogp-btn" style={{ fontSize: 11 }}>↗ Share</button>
+          <button className="ogp-btn ogp-btn-primary" style={{ fontSize: 11 }}>Download all</button>
+        </div>
+      </header>
 
-      {/* Wedding Timeline */}
-      {project.weddingTimelineEvents &&
-        project.weddingTimelineEvents.length > 0 && (
-          <div>
-            <h2 className="mb-4 flex items-center gap-2 font-serif text-xl font-semibold text-cream">
-              <Clock className="h-5 w-5 text-gold" />
-              Wedding Timeline
-            </h2>
-            <div className="relative">
-              <div className="absolute left-4 top-0 bottom-0 w-px bg-gradient-to-b from-gold via-gold/30 to-transparent md:left-1/2" />
-              <div className="space-y-6">
-                {project.weddingTimelineEvents.map((event, i) => (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className={`relative flex items-start gap-4 md:w-1/2 ${
-                      i % 2 === 0 ? "md:pr-8" : "md:ml-auto md:pl-8"
-                    }`}
-                  >
-                    <div className="absolute left-2.5 top-2 z-10 flex h-3 w-3 items-center justify-center rounded-full bg-gold md:left-auto md:right-auto md:-translate-x-1/2" />
-                    <div className="ml-8 flex-1 rounded-xl border border-border bg-surface p-4 md:ml-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">
-                          {eventIcons[event.icon || "camera"] || "📸"}
-                        </span>
-                        <h3 className="font-serif text-base font-semibold text-cream">
-                          {event.title}
-                        </h3>
-                      </div>
-                      {event.description && (
-                        <p className="mt-1 text-xs text-cream-muted">
-                          {event.description}
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center gap-3 text-xs text-cream-muted">
-                        <span>
-                          {new Date(event.eventTime).toLocaleTimeString(
-                            "en-IN",
-                            { hour: "2-digit", minute: "2-digit" }
-                          )}
-                        </span>
-                        {event.location && <span>📍 {event.location}</span>}
-                      </div>
-                      {event.galleryId && (
-                        <Link
-                          href={`/portal/gallery/${event.galleryId}`}
-                          className="mt-2 inline-flex items-center gap-1 text-xs text-gold hover:underline"
-                        >
-                          <Image className="h-3 w-3" />
-                          View Photos
-                        </Link>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px" }}>
+
+        {/* ═══ MAIN ═══ */}
+        <div style={{ padding: "32px 40px 80px", borderRight: "1px solid var(--line-soft)", minWidth: 0 }}>
+
+          {/* Title block */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span className="ogp-chip" data-status={sk}>
+                <span className="ogp-chip-dot" />
+                {project.status}
+              </span>
+              <span className="ogp-mono" style={{ fontSize: 10, letterSpacing: "0.14em", color: "var(--fg-3)", textTransform: "uppercase" }}>
+                {project.eventType} · {project.city || project.venue || "—"} · {eventDate}
+              </span>
+            </div>
+            <h1 className="ogp-serif" style={{ fontSize: 64, fontWeight: 400, letterSpacing: "-0.02em", lineHeight: 1, color: "var(--fg)" }}>
+              {project.title}
+            </h1>
+            {project.description && (
+              <div style={{ marginTop: 16, color: "var(--fg-2)", fontSize: 14 }}>
+                {project.description}
+              </div>
+            )}
+          </div>
+
+          {/* ─── Video Player ─── */}
+          <div style={{
+            position: "relative", aspectRatio: "16 / 9", borderRadius: 14,
+            overflow: "hidden", background: "black", border: "1px solid var(--line-soft)",
+          }}
+            className="ogp-ph"
+            data-tone="1"
+          >
+            {/* Play overlay */}
+            {!playing && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button
+                  onClick={() => setPlaying(true)}
+                  style={{
+                    width: 88, height: 88, borderRadius: 44,
+                    background: "oklch(1 0 0 / 0.1)", border: "1px solid oklch(1 0 0 / 0.4)",
+                    color: "white", fontSize: 26, backdropFilter: "blur(14px)", cursor: "pointer",
+                  }}
+                >▶</button>
+              </div>
+            )}
+
+            {/* Corner labels */}
+            <div className="ogp-mono" style={{ position: "absolute", top: 16, left: 16, fontSize: 10, color: "oklch(1 0 0 / 0.75)", letterSpacing: "0.14em" }}>
+              4K · DCI-P3 · ATMOS
+            </div>
+            <div className="ogp-mono" style={{ position: "absolute", top: 16, right: 16, fontSize: 10, color: "oklch(1 0 0 / 0.75)", letterSpacing: "0.14em" }}>
+              {tc(progress)} / 14:32
+            </div>
+
+            {/* Controls bar */}
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              padding: 16, background: "linear-gradient(180deg, transparent, oklch(0 0 0 / 0.7))",
+            }}>
+              {/* Scrubber */}
+              <div style={{ height: 2, background: "oklch(1 0 0 / 0.2)", borderRadius: 1, position: "relative", marginBottom: 12 }}>
+                <div style={{ width: `${progress}%`, height: "100%", background: "var(--accent)" }} />
+                <div style={{ position: "absolute", left: `${progress}%`, top: -4, width: 10, height: 10, borderRadius: 5, background: "var(--accent)", transform: "translateX(-50%)" }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                  <button onClick={() => setPlaying(!playing)} style={{ color: "white", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>
+                    {playing ? "❚❚" : "▶"}
+                  </button>
+                  <span className="ogp-mono" style={{ fontSize: 10, color: "oklch(1 0 0 / 0.8)", letterSpacing: "0.14em" }}>
+                    {tc(progress)} · 14:32
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["1080p ▾","CC","⤢"].map(l => (
+                    <button key={l} className="ogp-mono" style={{ fontSize: 10, padding: "4px 8px", border: "1px solid oklch(1 0 0 / 0.2)", borderRadius: 4, color: "white", letterSpacing: "0.14em", background: "none", cursor: "pointer" }}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        )}
 
-      {/* Galleries */}
-      <div>
-        <h2 className="mb-4 font-serif text-xl font-semibold text-cream">
-          Galleries
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {project.galleries.map((gallery, i) => (
-            <motion.div
-              key={gallery.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Link
-                href={`/portal/gallery/${gallery.id}`}
-                className="group block overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5"
-              >
-                <div className="relative h-40 bg-gradient-to-br from-charcoal to-dark">
-                  {gallery.coverImageUrl ? (
-                    <img
-                      src={gallery.coverImageUrl}
-                      alt={gallery.title}
-                      className="h-full w-full object-cover opacity-80 transition-all duration-500 group-hover:scale-105 group-hover:opacity-100"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Image className="h-10 w-10 text-border-light" />
+          {/* ─── Tabs ─── */}
+          <div style={{ display: "flex", gap: 0, marginTop: 32, borderBottom: "1px solid var(--line-soft)" }}>
+            {([["film","Film"],["gallery","Galleries"],["timeline","Timeline"],["notes","Notes"]] as const).map(([k, l]) => (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                style={{
+                  padding: "14px 0", marginRight: 32, fontSize: 13, background: "none", border: "none",
+                  color: tab === k ? "var(--fg)" : "var(--fg-3)",
+                  borderBottom: tab === k ? "1px solid var(--accent)" : "1px solid transparent",
+                  marginBottom: -1, cursor: "pointer", fontFamily: "var(--sans)",
+                }}
+              >{l}</button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div style={{ marginTop: 32 }}>
+            {tab === "film" && (
+              <div>
+                <div className="label-mono" style={{ marginBottom: 12 }}>SYNOPSIS</div>
+                <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--fg-2)", maxWidth: 600 }}>
+                  {project.description || "A film captured across extraordinary days and quiet moments. Edited with care, color-graded for cinema and delivered in full resolution."}
+                </p>
+              </div>
+            )}
+
+            {tab === "gallery" && (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+                  {project.galleries.map((g, i) => (
+                    <Link key={g.id} href={`/portal/gallery/${g.id}`} style={{ textDecoration: "none" }}>
+                      <div
+                        className="ogp-ph"
+                        data-tone={String((i % 6) + 1)}
+                        style={{ aspectRatio: "4/3", borderRadius: 8, position: "relative", cursor: "pointer" }}
+                      >
+                        <div style={{
+                          position: "absolute", inset: 0, padding: 12,
+                          display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                          background: "linear-gradient(180deg, transparent 50%, oklch(0 0 0 / 0.7) 100%)",
+                          borderRadius: 8,
+                        }}>
+                          <div className="ogp-serif" style={{ fontSize: 14, color: "white" }}>{g.title}</div>
+                          <div className="ogp-mono" style={{ fontSize: 9, color: "oklch(1 0 0 / 0.6)", letterSpacing: "0.14em", textTransform: "uppercase", marginTop: 2 }}>{g.mediaCount} items</div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "timeline" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {(project.weddingTimelineEvents || []).length === 0 ? (
+                  <div className="ogp-serif" style={{ fontSize: 20, color: "var(--fg-3)" }}>No timeline events yet.</div>
+                ) : (
+                  (project.weddingTimelineEvents || []).map((ev, i) => (
+                    <div key={ev.id} style={{ display: "flex", gap: 16, paddingBottom: 24 }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 4, background: i === 0 ? "var(--accent)" : "var(--fg-3)", marginTop: 4 }} />
+                        <div style={{ width: 1, flex: 1, background: "var(--line-soft)", marginTop: 6 }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{ev.title}</span>
+                          <span className="ogp-mono" style={{ fontSize: 10, color: "var(--fg-3)" }}>
+                            {new Date(ev.eventTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        {ev.description && <div style={{ fontSize: 12, color: "var(--fg-3)", marginTop: 4, lineHeight: 1.5 }}>{ev.description}</div>}
+                        {ev.location && <div className="ogp-mono" style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 4 }}>📍 {ev.location}</div>}
+                      </div>
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-dark/60 to-transparent" />
-                  <span className="absolute bottom-3 right-3 rounded-full bg-dark/60 px-2.5 py-1 text-xs font-medium text-cream backdrop-blur-sm">
-                    {gallery.mediaCount} items
-                  </span>
+                  ))
+                )}
+              </div>
+            )}
+
+            {tab === "notes" && (
+              <div style={{ color: "var(--fg-2)", fontSize: 14, lineHeight: 1.7 }}>
+                <div className="label-mono" style={{ marginBottom: 12 }}>NOTES & APPROVALS</div>
+                <div className="ogp-serif" style={{ fontSize: 20, color: "var(--fg-3)" }}>
+                  Your director responds within a day.
                 </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-base font-semibold text-cream transition-colors group-hover:text-gold">
-                    {gallery.title}
-                  </h3>
-                  {gallery.description && (
-                    <p className="mt-1 text-xs text-cream-muted line-clamp-2">
-                      {gallery.description}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                <button className="ogp-btn" style={{ marginTop: 20 }}>Message Omee →</button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* ═══ RIGHT SIDEBAR ═══ */}
+        <aside style={{ padding: "32px 28px", display: "flex", flexDirection: "column", gap: 28, position: "sticky", top: 64, alignSelf: "flex-start", maxHeight: "calc(100vh - 64px)", overflowY: "auto" }}>
+
+          {/* Details */}
+          <div>
+            <div className="label-mono" style={{ marginBottom: 12 }}>DETAILS</div>
+            <dl style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", rowGap: 10, columnGap: 12, fontSize: 12 }}>
+              {[
+                ["Type", project.eventType],
+                ["Date", eventDate],
+                ["Venue", project.venue || "—"],
+                ["City", project.city || "—"],
+                ["Galleries", String(project.galleries.length)],
+              ].map(([k, v]) => (
+                <>
+                  <dt key={`dt-${k}`} style={{ color: "var(--fg-3)" }}>{k}</dt>
+                  <dd key={`dd-${k}`} className="ogp-mono" style={{ fontSize: 11 }}>{v}</dd>
+                </>
+              ))}
+            </dl>
+          </div>
+
+          {/* Galleries quick-links */}
+          <div>
+            <div className="label-mono" style={{ marginBottom: 12 }}>GALLERIES · {project.galleries.length}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {project.galleries.map(g => (
+                <Link key={g.id} href={`/portal/gallery/${g.id}`} style={{ textDecoration: "none" }}>
+                  <div style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "8px 0", borderBottom: "1px solid var(--line-soft)",
+                  }}>
+                    <span style={{ fontSize: 13, color: "var(--fg)" }}>{g.title}</span>
+                    <span className="ogp-mono" style={{ fontSize: 10, color: "var(--fg-3)" }}>{g.mediaCount} items →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Contact card */}
+          <div style={{ padding: 16, border: "1px solid var(--line-soft)", borderRadius: 10, background: "var(--bg-2)" }}>
+            <div className="label-mono" style={{ marginBottom: 8 }}>NEED ANYTHING?</div>
+            <div style={{ fontSize: 12, color: "var(--fg-2)", lineHeight: 1.5, marginBottom: 12 }}>
+              Your director responds within a day. For urgent edits, mention "RUSH".
+            </div>
+            <button className="ogp-btn" style={{ width: "100%", justifyContent: "center" }}>Message Omee</button>
+          </div>
+        </aside>
       </div>
     </div>
   );

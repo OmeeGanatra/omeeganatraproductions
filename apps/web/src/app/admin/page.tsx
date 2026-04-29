@@ -2,17 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Users,
-  FolderKanban,
-  Image,
-  HardDrive,
-  Plus,
-  ArrowRight,
-  Circle,
-  Download,
-  Eye,
-} from "lucide-react";
+import { Plus, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/lib/auth";
 
@@ -42,11 +32,34 @@ interface DashboardStats {
   }>;
 }
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+// Gantt schedule data (static placeholder matching design)
+const SCHEDULE_ITEMS = [
+  { label: "Priya & Arjun", phase: "Color Grade", start: 0, width: 30, color: "var(--accent)" },
+  { label: "Shah Wedding", phase: "Edit", start: 20, width: 45, color: "oklch(0.65 0.15 240)" },
+  { label: "Meera Portraits", phase: "Delivered", start: 50, width: 50, color: "var(--ok)" },
+  { label: "Kapoor Engagement", phase: "Shoot", start: 65, width: 25, color: "var(--fg-3)" },
+];
+
+function getActivityDotColor(type: string): string {
+  switch (type) {
+    case "project": return "var(--accent)";
+    case "client": return "oklch(0.65 0.15 240)";
+    case "media": return "oklch(0.65 0.15 300)";
+    case "gallery": return "var(--ok)";
+    default: return "var(--fg-3)";
+  }
+}
+
+function getStatusDot(status: string): string {
+  switch (status.toUpperCase()) {
+    case "ACTIVE":
+    case "IN_PROGRESS": return "var(--ok)";
+    case "DELIVERED":
+    case "COMPLETED": return "oklch(0.65 0.15 240)";
+    case "DRAFT":
+    case "PLANNING": return "var(--fg-3)";
+    default: return "var(--line)";
+  }
 }
 
 function formatDate(): string {
@@ -55,77 +68,35 @@ function formatDate(): string {
     year: "numeric",
     month: "long",
     day: "numeric",
-  });
+  }).toUpperCase();
 }
 
-function getStatusColor(status: string): string {
-  switch (status.toUpperCase()) {
-    case "ACTIVE":
-    case "IN_PROGRESS":
-      return "bg-emerald-400";
-    case "DELIVERED":
-    case "COMPLETED":
-      return "bg-blue-400";
-    case "DRAFT":
-    case "PLANNING":
-      return "bg-ivory-muted/50";
-    default:
-      return "bg-ivory-muted/30";
-  }
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getStatusTextColor(status: string): string {
-  switch (status.toUpperCase()) {
-    case "ACTIVE":
-    case "IN_PROGRESS":
-      return "text-emerald-400";
-    case "DELIVERED":
-    case "COMPLETED":
-      return "text-blue-400";
-    case "DRAFT":
-    case "PLANNING":
-      return "text-ivory-muted";
-    default:
-      return "text-ivory-muted";
-  }
-}
+const METRIC_TILES = [
+  { key: "totalProjects" as const, label: "TOTAL PROJECTS" },
+  { key: "totalClients" as const, label: "ACTIVE CLIENTS" },
+  { key: "totalMedia" as const, label: "PHOTOS DELIVERED" },
+  { key: "storageUsed" as const, label: "STORAGE USED" },
+];
 
-function getActivityDotColor(type: string): string {
-  switch (type) {
-    case "project":
-      return "bg-gold";
-    case "client":
-      return "bg-blue-400";
-    case "media":
-      return "bg-purple-400";
-    case "gallery":
-      return "bg-emerald-400";
-    default:
-      return "bg-ivory-muted";
-  }
-}
-
-const statCards = [
-  {
-    key: "totalProjects" as const,
-    label: "Total Projects",
-    icon: FolderKanban,
-  },
-  {
-    key: "totalClients" as const,
-    label: "Active Clients",
-    icon: Users,
-  },
-  {
-    key: "totalMedia" as const,
-    label: "Photos Delivered",
-    icon: Image,
-  },
-  {
-    key: "storageUsed" as const,
-    label: "Storage Used",
-    icon: HardDrive,
-  },
+// Awaiting sign-off mock items (static until API provides them)
+const SIGNOFF_ITEMS = [
+  { title: "Priya & Arjun — Final Cut", due: "Due today" },
+  { title: "Shah Wedding Album", due: "Due in 2 days" },
 ];
 
 export default function AdminDashboard() {
@@ -151,26 +122,19 @@ export default function AdminDashboard() {
   const loadDashboard = async () => {
     try {
       const [clientsRes, projectsRes] = await Promise.all([
-        api
-          .get("/admin/clients?limit=5")
-          .catch(() => ({ data: { data: [], total: 0 } })),
-        api
-          .get("/admin/projects?limit=5")
-          .catch(() => ({ data: { data: [], total: 0 } })),
+        api.get("/admin/clients?limit=5").catch(() => ({ data: { data: [], total: 0 } })),
+        api.get("/admin/projects?limit=5").catch(() => ({ data: { data: [], total: 0 } })),
       ]);
 
       const clients = clientsRes.data.data || clientsRes.data || [];
       const projects = projectsRes.data.data || projectsRes.data || [];
 
-      // Build activity feed from recent data
       const activity: DashboardStats["recentActivity"] = [];
       projects.slice(0, 3).forEach((p: any) => {
         activity.push({
           id: `proj-${p.id}`,
           text: `${p.title} project ${p.status?.toLowerCase() === "active" ? "is active" : p.status?.toLowerCase() || "created"}`,
-          time: p.eventDate
-            ? formatRelativeTime(p.eventDate)
-            : "Recently",
+          time: p.eventDate ? formatRelativeTime(p.eventDate) : "Recently",
           type: "project",
         });
       });
@@ -178,9 +142,7 @@ export default function AdminDashboard() {
         activity.push({
           id: `client-${c.id}`,
           text: `New client added: ${c.fullName}`,
-          time: c.createdAt
-            ? formatRelativeTime(c.createdAt)
-            : "Recently",
+          time: c.createdAt ? formatRelativeTime(c.createdAt) : "Recently",
           type: "client",
         });
       });
@@ -205,245 +167,429 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome section */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
         <div>
-          <h1 className="font-serif text-2xl font-normal text-ivory">
-            {getGreeting()},{" "}
-            <span className="text-gold">
-              {user?.fullName?.split(" ")[0] || "Omee"}
-            </span>
+          <p
+            className="label-mono"
+            style={{ fontSize: 9, color: "var(--fg-3)", letterSpacing: "0.18em", marginBottom: 6 }}
+          >
+            {formatDate()}
+          </p>
+          <h1
+            className="ogp-serif"
+            style={{ fontSize: 32, color: "var(--fg)", fontWeight: 400 }}
+          >
+            Studio overview.
           </h1>
-          <p className="mt-1 text-sm text-ivory-muted">{formatDate()}</p>
         </div>
-        <div className="flex gap-2">
+
+        <div style={{ display: "flex", gap: 8 }}>
           <Link
             href="/admin/projects?new=true"
-            className="flex items-center gap-1.5 rounded-md border border-gold/30 px-3.5 py-2 text-xs font-medium text-gold transition-all hover:border-gold/50 hover:bg-gold/5"
+            className="ogp-btn ogp-btn-accent"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              textDecoration: "none",
+            }}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus size={13} />
             New Project
           </Link>
           <Link
             href="/admin/clients?new=true"
-            className="flex items-center gap-1.5 rounded-md border border-border-light px-3.5 py-2 text-xs font-medium text-ivory-muted transition-all hover:border-ivory-muted/30 hover:text-ivory"
+            className="ogp-btn"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              textDecoration: "none",
+            }}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus size={13} />
             New Client
           </Link>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
+      {/* Metric tiles — 4 columns */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 16,
+        }}
+      >
+        {METRIC_TILES.map((tile) => (
           <div
-            key={card.key}
-            className="relative overflow-hidden rounded-lg bg-surface px-5 py-4"
+            key={tile.key}
+            className="ogp-frame"
+            style={{
+              borderRadius: 10,
+              padding: "20px 22px",
+            }}
           >
-            {/* Gold top accent */}
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-gold/60 via-gold/20 to-transparent" />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[32px] font-bold leading-none text-ivory">
-                  {loading
-                    ? "--"
-                    : card.key === "storageUsed"
-                      ? stats.storageUsed
-                      : (stats as any)[card.key]}
-                </p>
-                <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-ivory-muted">
-                  {card.label}
-                </p>
-              </div>
-              <card.icon className="h-5 w-5 text-ivory-muted/30" />
-            </div>
+            <p
+              className="ogp-serif"
+              style={{ fontSize: 44, color: "var(--fg)", lineHeight: 1, marginBottom: 8 }}
+            >
+              {loading
+                ? "—"
+                : tile.key === "storageUsed"
+                  ? stats.storageUsed
+                  : (stats as any)[tile.key]}
+            </p>
+            <p
+              className="label-mono"
+              style={{ fontSize: 9, color: "var(--fg-3)", letterSpacing: "0.15em" }}
+            >
+              {tile.label}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* Two-column grid */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Recent Projects */}
-        <div className="rounded-lg bg-surface">
-          <div className="flex items-center justify-between px-5 py-3.5">
-            <h2 className="text-sm font-semibold text-ivory">
-              Recent Projects
-            </h2>
+      {/* Production schedule Gantt strip */}
+      <div
+        className="ogp-frame"
+        style={{ borderRadius: 10, padding: "20px 22px" }}
+      >
+        <p
+          className="label-mono"
+          style={{
+            fontSize: 9,
+            color: "var(--fg-3)",
+            letterSpacing: "0.15em",
+            marginBottom: 16,
+          }}
+        >
+          PRODUCTION SCHEDULE
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {SCHEDULE_ITEMS.map((item, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 140,
+                  flexShrink: 0,
+                }}
+              >
+                <p style={{ fontSize: 12, color: "var(--fg-2)" }}>{item.label}</p>
+                <p
+                  className="label-mono"
+                  style={{ fontSize: 9, color: "var(--fg-3)", letterSpacing: "0.08em" }}
+                >
+                  {item.phase}
+                </p>
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  height: 6,
+                  background: "var(--bg-3)",
+                  borderRadius: 99,
+                  position: "relative",
+                  overflow: "visible",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${item.start}%`,
+                    width: `${item.width}%`,
+                    height: "100%",
+                    background: item.color,
+                    borderRadius: 99,
+                    opacity: 0.85,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Two-col: Inbox + Awaiting sign-off */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+        }}
+      >
+        {/* Inbox — Recent Projects */}
+        <div
+          className="ogp-frame"
+          style={{ borderRadius: 10, overflow: "hidden" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 18px",
+              borderBottom: "1px solid var(--line-soft)",
+            }}
+          >
+            <p
+              className="label-mono"
+              style={{ fontSize: 9, color: "var(--fg-3)", letterSpacing: "0.15em" }}
+            >
+              INBOX
+            </p>
             <Link
               href="/admin/projects"
-              className="flex items-center gap-1 text-xs text-ivory-muted transition-colors hover:text-gold"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "var(--fg-3)",
+                textDecoration: "none",
+              }}
             >
-              View All <ArrowRight className="h-3 w-3" />
+              View all <ArrowRight size={11} />
             </Link>
           </div>
-          <div className="border-t border-border">
+
+          <div>
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 border-b border-border/50 px-5 py-3"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "11px 18px",
+                    borderBottom: "1px solid var(--line-soft)",
+                  }}
                 >
-                  <div className="h-3 w-36 animate-pulse rounded bg-surface-light" />
-                  <div className="ml-auto h-3 w-16 animate-pulse rounded bg-surface-light" />
+                  <div
+                    style={{
+                      width: 120,
+                      height: 10,
+                      background: "var(--bg-3)",
+                      borderRadius: 4,
+                      animation: "pulse 1.5s ease-in-out infinite",
+                    }}
+                  />
                 </div>
               ))
             ) : stats.recentProjects.length === 0 ? (
-              <div className="px-5 py-10 text-center text-sm text-ivory-muted">
-                No projects yet. Create your first project to get started.
-              </div>
+              <p
+                style={{
+                  padding: "24px 18px",
+                  fontSize: 12,
+                  color: "var(--fg-3)",
+                  textAlign: "center",
+                }}
+              >
+                No projects yet.
+              </p>
             ) : (
-              stats.recentProjects.map((project) => (
+              stats.recentProjects.map((project, i) => (
                 <Link
                   key={project.id}
                   href={`/admin/projects/${project.id}`}
-                  className="group flex items-center gap-3 border-b border-border/50 px-5 py-3 transition-colors last:border-b-0 hover:bg-surface-light"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "11px 18px",
+                    borderBottom:
+                      i < stats.recentProjects.length - 1
+                        ? "1px solid var(--line-soft)"
+                        : "none",
+                    textDecoration: "none",
+                    transition: "background 0.15s",
+                  }}
                 >
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[13px] font-medium text-ivory group-hover:text-gold">
-                      {project.title}
-                    </span>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-border-light px-2 py-0.5 text-[10px] font-medium text-ivory-muted">
-                    {project.eventType}
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: getStatusDot(project.status),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{ fontSize: 13, color: "var(--fg-2)", flex: 1, minWidth: 0 }}
+                  >
+                    {project.title}
                   </span>
                   <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${getStatusColor(project.status)}`}
-                    title={project.status}
-                  />
-                  <span className="w-20 shrink-0 text-right text-[11px] text-ivory-muted">
-                    {project.eventDate
-                      ? new Date(project.eventDate).toLocaleDateString(
-                          "en-US",
-                          { month: "short", day: "numeric" }
-                        )
-                      : "--"}
+                    className="label-mono"
+                    style={{
+                      fontSize: 9,
+                      color: "var(--fg-3)",
+                      letterSpacing: "0.08em",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {project.eventType}
                   </span>
+                  {project.eventDate && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: "var(--fg-3)",
+                        flexShrink: 0,
+                        marginLeft: 4,
+                      }}
+                    >
+                      {new Date(project.eventDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  )}
                 </Link>
               ))
             )}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="rounded-lg bg-surface">
-          <div className="flex items-center justify-between px-5 py-3.5">
-            <h2 className="text-sm font-semibold text-ivory">
-              Recent Activity
-            </h2>
+        {/* Awaiting sign-off */}
+        <div
+          className="ogp-frame"
+          style={{ borderRadius: 10, overflow: "hidden" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 18px",
+              borderBottom: "1px solid var(--line-soft)",
+            }}
+          >
+            <p
+              className="label-mono"
+              style={{ fontSize: 9, color: "var(--fg-3)", letterSpacing: "0.15em" }}
+            >
+              AWAITING SIGN-OFF
+            </p>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: "var(--danger)",
+                fontSize: 9,
+                color: "#fff",
+                fontWeight: 600,
+              }}
+            >
+              {SIGNOFF_ITEMS.length}
+            </span>
           </div>
-          <div className="border-t border-border">
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 px-5 py-3"
-                >
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-surface-light" />
-                  <div className="h-3 w-48 animate-pulse rounded bg-surface-light" />
+
+          <div>
+            {SIGNOFF_ITEMS.map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "14px 18px",
+                  borderBottom:
+                    i < SIGNOFF_ITEMS.length - 1 ? "1px solid var(--line-soft)" : "none",
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: 13, color: "var(--fg-2)", marginBottom: 3 }}>
+                    {item.title}
+                  </p>
+                  <p
+                    className="label-mono"
+                    style={{ fontSize: 9, color: "var(--danger)", letterSpacing: "0.08em" }}
+                  >
+                    {item.due}
+                  </p>
                 </div>
-              ))
-            ) : stats.recentActivity.length === 0 ? (
-              <div className="px-5 py-10 text-center text-sm text-ivory-muted">
-                No recent activity to show.
+                <button
+                  className="ogp-btn"
+                  style={{ fontSize: 11, padding: "5px 12px" }}
+                >
+                  Review
+                </button>
               </div>
-            ) : (
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute bottom-0 left-[27px] top-0 w-px bg-border" />
-                {stats.recentActivity.map((item, i) => (
+            ))}
+
+            {/* Recent Activity section within this card */}
+            {stats.recentActivity.length > 0 && (
+              <>
+                <div
+                  style={{
+                    padding: "12px 18px 6px",
+                    borderTop: "1px solid var(--line-soft)",
+                  }}
+                >
+                  <p
+                    className="label-mono"
+                    style={{
+                      fontSize: 9,
+                      color: "var(--fg-3)",
+                      letterSpacing: "0.15em",
+                      marginBottom: 8,
+                    }}
+                  >
+                    RECENT ACTIVITY
+                  </p>
+                </div>
+                {stats.recentActivity.map((item) => (
                   <div
                     key={item.id}
-                    className="relative flex items-start gap-3 px-5 py-3"
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "8px 18px",
+                    }}
                   >
-                    <div
-                      className={`relative z-10 mt-1 h-2 w-2 shrink-0 rounded-full ${getActivityDotColor(item.type)}`}
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: getActivityDotColor(item.type),
+                        flexShrink: 0,
+                        marginTop: 4,
+                      }}
                     />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] leading-snug text-ivory">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, color: "var(--fg-2)", lineHeight: 1.4 }}>
                         {item.text}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-ivory-muted">
+                      <p style={{ fontSize: 10, color: "var(--fg-3)", marginTop: 2 }}>
                         {item.time}
                       </p>
                     </div>
                   </div>
                 ))}
-              </div>
+              </>
             )}
           </div>
         </div>
       </div>
-
-      {/* Bottom quick stats bar */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* Storage usage */}
-        <div className="rounded-lg bg-surface px-5 py-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-ivory-muted">
-              Storage Usage
-            </p>
-            <HardDrive className="h-3.5 w-3.5 text-ivory-muted/40" />
-          </div>
-          <div className="mt-3">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
-              <div
-                className="h-full rounded-full bg-gold transition-all duration-500"
-                style={{
-                  width: `${Math.min(stats.storagePercent, 100)}%`,
-                }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-ivory-muted">
-              {stats.storageUsed} used
-            </p>
-          </div>
-        </div>
-
-        {/* Downloads this month */}
-        <div className="rounded-lg bg-surface px-5 py-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-ivory-muted">
-              Downloads This Month
-            </p>
-            <Download className="h-3.5 w-3.5 text-ivory-muted/40" />
-          </div>
-          <p className="mt-3 text-2xl font-bold text-ivory">
-            {loading ? "--" : stats.downloadsThisMonth}
-          </p>
-        </div>
-
-        {/* Galleries this week */}
-        <div className="rounded-lg bg-surface px-5 py-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-ivory-muted">
-              Galleries Published
-            </p>
-            <Eye className="h-3.5 w-3.5 text-ivory-muted/40" />
-          </div>
-          <p className="mt-3 text-2xl font-bold text-ivory">
-            {loading ? "--" : stats.galleriesThisWeek}
-          </p>
-          <p className="mt-0.5 text-[11px] text-ivory-muted">this week</p>
-        </div>
-      </div>
     </div>
   );
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
-
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

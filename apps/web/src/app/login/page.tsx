@@ -1,257 +1,153 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginPageInner />
-    </Suspense>
-  );
-}
-
 function LoginPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const router   = useRouter();
+  const params   = useSearchParams();
+  const nextPath = params.get("next") ?? "/portal";
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [loginType, setLoginType] = useState<"client" | "admin">("client");
 
-  const next = searchParams.get("next");
+  const [email,    setEmail]    = useState("riya.arjun@example.com");
+  const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
+    setError(""); setLoading(true);
     try {
-      const result = await login(email, password, loginType === "admin");
-
-      if (result.requiresOtp && result.challengeId) {
-        const params = new URLSearchParams({
-          challengeId: result.challengeId,
-          type: loginType,
-        });
-        if (next) params.set("next", next);
-        router.push(`/verify-otp?${params.toString()}`);
-        return;
-      }
-
-      if (next) {
-        router.push(next);
+      const result = await login(email, password);
+      if (result?.requiresOtp && result?.challengeId) {
+        router.push(`/verify-otp?challengeId=${result.challengeId}&next=${encodeURIComponent(nextPath)}`);
+      } else {
+        router.push(nextPath);
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } };
-      setError(
-        e.response?.data?.error ||
-          "Invalid credentials. Please try again."
-      );
+      setError(e.response?.data?.error ?? "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative flex min-h-screen">
-      {/* --- Left Panel: Cinematic Visual with real photo --- */}
-      <div className="relative hidden w-1/2 overflow-hidden lg:block">
-        {/* Real wedding photo background */}
-        <img
-          src="https://images.unsplash.com/photo-1606800052052-a08af7148866?w=1200&q=80"
-          alt="Bride preparation"
-          loading="eager"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+    <div className="ogp-view-in" style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr", color: "var(--fg)" }}>
 
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/50" />
+      {/* ═══ LEFT: brand panel ═══ */}
+      <div style={{
+        position: "relative", background: "var(--bg-2)",
+        borderRight: "1px solid var(--line-soft)", padding: 48,
+        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        overflow: "hidden",
+      }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "var(--fg)" }}>
+          <Image src="/og-logo-white.png" alt="OGP" width={28} height={28} style={{ objectFit: "contain" }} />
+          <span className="ogp-serif" style={{ fontSize: 18 }}>Omee Ganatra</span>
+        </Link>
 
-        {/* Warm golden tint */}
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            background:
-              "radial-gradient(ellipse at 30% 40%, rgba(201,169,110,0.25) 0%, transparent 60%)",
-          }}
-        />
-
-        {/* Content overlay */}
-        <div className="relative z-10 flex h-full flex-col justify-between p-12 lg:p-16">
-          <div>
-            <Link href="/" className="group block">
-              <span className="block font-serif text-base font-normal tracking-[0.3em] text-ivory">
-                OMEE GANATRA
-              </span>
-              <span className="block text-[9px] font-light tracking-[0.4em] text-ivory-muted">
-                PRODUCTIONS
-              </span>
-            </Link>
-          </div>
-
-          <div>
-            <div className="mb-4 h-px w-12 bg-gold/40" />
-            <p className="text-[10px] font-light tracking-[0.35em] text-ivory-muted/60">
-              YOUR MOMENTS, PRESERVED FOREVER
-            </p>
-          </div>
+        {/* Film strip mosaic */}
+        <div style={{
+          position: "absolute", top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
+          width: "68%", aspectRatio: "1", opacity: 0.5,
+        }}>
+          {([1,2,3,4,5,6,1,2,3] as number[]).map((t, i) => (
+            <div key={i} className="ogp-ph" data-tone={String(t)} style={{ borderRadius: 4, minHeight: 80 }} />
+          ))}
         </div>
 
-        <div className="absolute bottom-0 right-0 top-0 w-px bg-border/50" />
+        <div style={{ position: "relative" }}>
+          <h1 className="ogp-serif" style={{ fontSize: 56, lineHeight: 1, letterSpacing: "-0.02em" }}>
+            Your private<br />
+            <em style={{ color: "var(--accent)" }}>vault.</em>
+          </h1>
+          <p style={{ marginTop: 24, color: "var(--fg-2)", maxWidth: 380, lineHeight: 1.6, fontSize: 15 }}>
+            Stream final cuts, review selects, and download masters — from anywhere, on any device.
+            Encrypted, signed, and yours.
+          </p>
+          <div className="ogp-mono" style={{ marginTop: 48, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--fg-3)" }}>
+            ACCESS · CTRL — TLS 1.3 · AES-256
+          </div>
+        </div>
       </div>
 
-      {/* --- Right Panel: Login Form --- */}
-      <div className="flex w-full items-center justify-center bg-[#050505] px-6 lg:w-1/2 lg:px-16">
-        <div className="w-full max-w-sm">
-          <div className="mb-12 text-center lg:hidden">
-            <Link href="/" className="inline-block">
-              <span className="block font-serif text-base font-normal tracking-[0.3em] text-ivory">
-                OMEE GANATRA
-              </span>
-              <span className="block text-[9px] font-light tracking-[0.4em] text-ivory-muted">
-                PRODUCTIONS
-              </span>
-            </Link>
-          </div>
+      {/* ═══ RIGHT: form ═══ */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 48, position: "relative", background: "var(--bg)" }}>
+        <Link href="/" className="ogp-mono" style={{
+          position: "absolute", top: 32, right: 32,
+          fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase",
+          color: "var(--fg-3)", textDecoration: "none",
+        }}>← back to site</Link>
 
-          <div className="mb-10 flex gap-8">
-            <button
-              type="button"
-              onClick={() => setLoginType("client")}
-              className={`relative pb-2 text-[11px] tracking-[0.2em] transition-all duration-300 ${
-                loginType === "client"
-                  ? "text-ivory"
-                  : "text-ivory-muted/40 hover:text-ivory-muted"
-              }`}
-            >
-              CLIENT
-              {loginType === "client" && (
-                <motion.div
-                  layoutId="loginTab"
-                  className="absolute bottom-0 left-0 right-0 h-px bg-gold"
-                  transition={{ duration: 0.3 }}
-                />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginType("admin")}
-              className={`relative pb-2 text-[11px] tracking-[0.2em] transition-all duration-300 ${
-                loginType === "admin"
-                  ? "text-ivory"
-                  : "text-ivory-muted/40 hover:text-ivory-muted"
-              }`}
-            >
-              ADMIN
-              {loginType === "admin" && (
-                <motion.div
-                  layoutId="loginTab"
-                  className="absolute bottom-0 left-0 right-0 h-px bg-gold"
-                  transition={{ duration: 0.3 }}
-                />
-              )}
-            </button>
-          </div>
-
-          <h2 className="font-serif text-4xl font-normal text-ivory md:text-5xl">
-            Welcome Back
+        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 380 }}>
+          <div className="label-mono" style={{ marginBottom: 12 }}>SIGN IN</div>
+          <h2 className="ogp-serif" style={{ fontSize: 40, fontWeight: 400, letterSpacing: "-0.02em", marginBottom: 32 }}>
+            Welcome back.
           </h2>
-          <p className="mt-3 text-sm font-light text-ivory-muted/60">
-            Sign in to access your private gallery
-          </p>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="mt-6 border-l-2 border-red-400/40 py-2 pl-4 text-sm font-light text-red-400/80"
-            >
-              {error}
-            </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} className="mt-10 space-y-8">
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-3 block text-[10px] font-light tracking-[0.2em] text-ivory-muted/50"
-              >
-                EMAIL ADDRESS
-              </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Email */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label className="label-mono">EMAIL</label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-                className="input-luxury"
+                type="email" value={email} required
+                onChange={e => setEmail(e.target.value)}
+                style={{ padding: "12px 14px", background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, color: "var(--fg)", outline: "none", fontFamily: "var(--sans)" }}
+              />
+            </div>
+            {/* Password */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label className="label-mono">PASSWORD</label>
+              <input
+                type="password" value={password} placeholder="••••••••••" required
+                onChange={e => setPassword(e.target.value)}
+                style={{ padding: "12px 14px", background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, color: "var(--fg)", outline: "none", fontFamily: "var(--sans)" }}
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-3 block text-[10px] font-light tracking-[0.2em] text-ivory-muted/50"
-              >
-                PASSWORD
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="current-password"
-                  className="input-luxury"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 text-[10px] tracking-[0.15em] text-ivory-muted/30 transition-colors hover:text-ivory-muted"
-                >
-                  {showPassword ? "HIDE" : "SHOW"}
-                </button>
+            {error && (
+              <div style={{ padding: "10px 14px", background: "oklch(0.65 0.18 25 / 0.12)", border: "1px solid var(--danger)", borderRadius: 8, fontSize: 12, color: "var(--danger)" }}>
+                {error}
               </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--fg-2)", cursor: "pointer" }}>
+                <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} /> Remember device
+              </label>
+              <Link href="/forgot-password" className="ogp-mono" style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-2)", textDecoration: "none" }}>Forgot?</Link>
             </div>
 
             <button
-              type="submit"
-              disabled={loading}
-              className="btn-gold mt-4 w-full"
+              type="submit" disabled={loading}
+              className="ogp-btn ogp-btn-primary"
+              style={{ width: "100%", padding: "14px", justifyContent: "center", marginTop: 8, fontSize: 13, opacity: loading ? 0.7 : 1, borderRadius: 8 }}
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? <span className="ogp-mono">AUTHENTICATING…</span> : "Enter the vault →"}
             </button>
-          </form>
 
-          <div className="mt-8 text-center">
-            <Link
-              href="/forgot-password"
-              className="text-[10px] font-light tracking-[0.15em] text-ivory-muted/30 transition-colors duration-300 hover:text-gold"
-            >
-              Forgot your password?
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+              <div className="ogp-mono" style={{ fontSize: 10, letterSpacing: "0.14em", color: "var(--fg-3)" }}>OR</div>
+              <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+            </div>
+
+            <Link href="/admin" className="ogp-btn" style={{ width: "100%", padding: "12px", justifyContent: "center", borderRadius: 8, textDecoration: "none", display: "flex" }}>
+              Sign in as Studio Admin →
             </Link>
           </div>
-
-          <div className="mt-16 text-center">
-            <p className="text-[9px] tracking-[0.2em] text-ivory-muted/20">
-              SECURED &amp; ENCRYPTED
-            </p>
-          </div>
-        </div>
+        </form>
       </div>
     </div>
   );
+}
+
+export default function LoginPage() {
+  return <Suspense><LoginPageInner /></Suspense>;
 }

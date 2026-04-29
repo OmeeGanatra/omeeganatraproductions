@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Bell, LogOut, Settings, Menu, X } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 
-const navLinks = [
-  { href: "/portal", label: "Gallery" },
-  { href: "/portal/films", label: "Films" },
-  { href: "/portal/favorites", label: "Favorites" },
-  { href: "/portal/downloads", label: "Downloads" },
+const STATUS_FILTERS = [
+  { key: "all", label: "all" },
+  { key: "shoot", label: "shoot" },
+  { key: "edit", label: "edit" },
+  { key: "color", label: "color" },
+  { key: "delivered", label: "delivered" },
+];
+
+const NAV_ITEMS = [
+  { href: "/portal", label: "Projects", badge: null },
+  { href: "/portal/vault", label: "Vault", badge: "2.4 TB" },
+  { href: "/portal/activity", label: "Activity", badge: null },
+  { href: "/portal/invoices", label: "Invoices", badge: "1" },
+  { href: "/portal/messages", label: "Messages", badge: "3" },
 ];
 
 export default function PortalLayout({
@@ -22,49 +30,12 @@ export default function PortalLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, status, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push("/login?next=" + encodeURIComponent(pathname));
     }
-  }, [status, router]);
-
-  // Track scroll for nav background
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setUserDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  // Lock body on mobile menu
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileMenuOpen]);
+  }, [status, router, pathname]);
 
   const handleLogout = () => {
     void logout();
@@ -75,227 +46,255 @@ export default function PortalLayout({
     return pathname.startsWith(href);
   };
 
-  const firstName = user?.fullName?.split(" ")[0] || "Guest";
-  const initials =
-    user?.fullName
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "G";
+  const firstInitial =
+    user?.fullName?.charAt(0).toUpperCase() || "G";
 
   if (status === "loading" || status === "idle" || status === "unauthenticated") {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* --- Top Navigation Bar (visible immediately) --- */}
-      <nav
-        className={`fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between transition-all duration-500 ${
-          scrolled
-            ? "nav-blur"
-            : "bg-transparent"
-        }`}
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
+      {/* Sidebar */}
+      <aside
+        style={{
+          width: 240,
+          flexShrink: 0,
+          background: "var(--bg)",
+          borderRight: "1px solid var(--line-soft)",
+          display: "flex",
+          flexDirection: "column",
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          overflowY: "auto",
+        }}
       >
-        {/* Left: Logo */}
-        <div className="flex items-center pl-6 md:pl-10">
-          <Link
-            href="/portal"
-            className="text-[11px] font-medium uppercase tracking-[0.3em] text-ivory transition-colors duration-300 hover:text-gold"
+        {/* Logo */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "20px 20px 16px",
+            borderBottom: "1px solid var(--line-soft)",
+          }}
+        >
+          <Image
+            src="/og-logo-white.png"
+            alt="OGP"
+            width={28}
+            height={28}
+            style={{ objectFit: "contain" }}
+          />
+          <span
+            className="ogp-serif"
+            style={{ fontSize: 14, color: "var(--fg)", letterSpacing: "0.01em" }}
           >
             Omee Ganatra
-          </Link>
+          </span>
         </div>
 
-        {/* Center: Nav Links (Desktop) */}
-        <div className="hidden items-center gap-10 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="group relative py-1"
-            >
-              <span
-                className={`text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 ${
-                  isActive(link.href)
-                    ? "text-ivory"
-                    : "text-ivory-muted hover:text-ivory"
-                }`}
-              >
-                {link.label}
-              </span>
-              {isActive(link.href) && (
-                <motion.span
-                  layoutId="nav-underline"
-                  className="absolute -bottom-1 left-0 right-0 h-px bg-gold"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-            </Link>
-          ))}
-        </div>
-
-        {/* Right: Bell, Avatar, Dropdown */}
-        <div className="flex items-center gap-4 pr-6 md:pr-10">
-          <Link
-            href="/portal/notifications"
-            className="hidden text-ivory-muted transition-colors duration-300 hover:text-ivory md:block"
+        {/* WORKSPACE nav */}
+        <div style={{ padding: "20px 12px 8px" }}>
+          <p
+            className="label-mono"
+            style={{
+              fontSize: 9,
+              color: "var(--fg-3)",
+              letterSpacing: "0.15em",
+              marginBottom: 6,
+              paddingLeft: 8,
+            }}
           >
-            <Bell className="h-[15px] w-[15px]" strokeWidth={1.5} />
-          </Link>
-
-          {/* User Dropdown (Desktop) */}
-          <div ref={dropdownRef} className="relative hidden md:block">
-            <button
-              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="flex items-center gap-3 transition-opacity hover:opacity-80"
-            >
-              <span className="text-[11px] tracking-wide text-ivory-muted">
-                {firstName}
-              </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-light text-[10px] font-medium tracking-wider text-ivory-muted ring-1 ring-border">
-                {user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt=""
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </div>
-            </button>
-
-            <AnimatePresence>
-              {userDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-3 w-48 overflow-hidden border border-border bg-surface py-1"
+            WORKSPACE
+          </p>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "7px 10px",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    color: active ? "var(--fg)" : "var(--fg-2)",
+                    background: active ? "var(--bg-3)" : "transparent",
+                    textDecoration: "none",
+                    transition: "background 0.15s, color 0.15s",
+                  }}
                 >
-                  <div className="border-b border-border px-4 py-3">
-                    <p className="text-[11px] font-medium text-ivory">
-                      {user?.fullName}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-ivory-muted">
-                      {user?.email}
-                    </p>
-                  </div>
-                  <Link
-                    href="/portal/settings"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-[11px] text-ivory-muted transition-colors hover:bg-surface-light hover:text-ivory"
-                  >
-                    <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    Settings
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setUserDropdownOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[11px] text-ivory-muted transition-colors hover:bg-surface-light hover:text-ivory"
-                  >
-                    <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    Sign Out
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span
+                      className="ogp-chip"
+                      style={{
+                        fontSize: 10,
+                        color: "var(--fg-3)",
+                        background: "var(--bg-2)",
+                        padding: "1px 6px",
+                        borderRadius: 99,
+                        border: "1px solid var(--line-soft)",
+                      }}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* STATUS filters */}
+        <div style={{ padding: "16px 12px 8px" }}>
+          <p
+            className="label-mono"
+            style={{
+              fontSize: 9,
+              color: "var(--fg-3)",
+              letterSpacing: "0.15em",
+              marginBottom: 6,
+              paddingLeft: 8,
+            }}
+          >
+            STATUS
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: "var(--fg-2)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span
+                  className="ogp-chip-dot"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background:
+                      f.key === "delivered"
+                        ? "var(--ok)"
+                        : f.key === "color"
+                          ? "var(--accent)"
+                          : f.key === "edit"
+                            ? "oklch(0.65 0.15 240)"
+                            : f.key === "shoot"
+                              ? "var(--fg-3)"
+                              : "var(--line)",
+                    flexShrink: 0,
+                  }}
+                />
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* User card */}
+        <div
+          style={{
+            margin: 12,
+            padding: 12,
+            border: "1px solid var(--line-soft)",
+            borderRadius: 10,
+            background: "var(--bg-2)",
+          }}
+        >
+          {/* Avatar + name row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "var(--accent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#000",
+                flexShrink: 0,
+              }}
+            >
+              {firstInitial}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--fg)",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {user?.fullName || "Guest"}
+              </p>
+              <p
+                className="label-mono"
+                style={{ fontSize: 9, color: "var(--accent)", letterSpacing: "0.1em" }}
+              >
+                SIGNATURE CLIENT
+              </p>
+            </div>
           </div>
 
-          {/* Mobile Hamburger */}
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="text-ivory-muted transition-colors hover:text-ivory md:hidden"
-          >
-            <Menu className="h-5 w-5" strokeWidth={1.5} />
-          </button>
-        </div>
-      </nav>
-
-      {/* --- Mobile Fullscreen Menu --- */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg"
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="absolute right-6 top-5 text-ivory-muted transition-colors hover:text-ivory"
+          {/* Action row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Link
+              href="/admin"
+              style={{
+                fontSize: 11,
+                color: "var(--fg-2)",
+                textDecoration: "none",
+                flexShrink: 0,
+              }}
             >
-              <X className="h-5 w-5" strokeWidth={1.5} />
+              Admin →
+            </Link>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={handleLogout}
+              style={{
+                fontSize: 11,
+                color: "var(--fg-3)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              Sign out
             </button>
+          </div>
+        </div>
+      </aside>
 
-            {/* Logo */}
-            <div className="absolute left-6 top-5">
-              <span className="text-[11px] uppercase tracking-[0.3em] text-ivory-muted">
-                Omee Ganatra
-              </span>
-            </div>
-
-            {/* Nav Links (visible immediately when menu opens) */}
-            <nav className="flex flex-col items-center gap-10">
-              {navLinks.map((link) => (
-                <div key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`font-serif text-3xl font-light tracking-wide transition-colors ${
-                      isActive(link.href) ? "text-gold" : "text-ivory"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </div>
-              ))}
-            </nav>
-
-            {/* Bottom: User + Sign Out */}
-            <div className="absolute bottom-10 flex flex-col items-center gap-4">
-              <p className="text-[11px] tracking-wide text-ivory-muted">
-                {user?.fullName}
-              </p>
-              <div className="flex items-center gap-6">
-                <Link
-                  href="/portal/notifications"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-[10px] uppercase tracking-[0.2em] text-ivory-muted transition-colors hover:text-gold"
-                >
-                  Notifications
-                </Link>
-                <Link
-                  href="/portal/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-[10px] uppercase tracking-[0.2em] text-ivory-muted transition-colors hover:text-gold"
-                >
-                  Settings
-                </Link>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="text-[10px] uppercase tracking-[0.2em] text-ivory-muted transition-colors hover:text-gold"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* --- Main Content --- */}
-      <main className="min-h-screen pt-16">{children}</main>
+      {/* Main content */}
+      <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
     </div>
   );
 }

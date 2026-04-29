@@ -1,6 +1,92 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@200;300;400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@200;300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 @import "tailwindcss";
+
+/* ─── OGP Design System (cinema-noir) ─── */
+:root {
+  --bg:          oklch(0.14 0.005 270);
+  --bg-2:        oklch(0.18 0.006 270);
+  --bg-3:        oklch(0.22 0.008 270);
+  --line:        oklch(0.32 0.008 270);
+  --line-soft:   oklch(0.26 0.006 270);
+  --fg:          oklch(0.96 0.008 80);
+  --fg-2:        oklch(0.78 0.01 80);
+  --fg-3:        oklch(0.58 0.012 80);
+  --accent:      oklch(0.82 0.13 75);
+  --accent-2:    oklch(0.72 0.14 60);
+  --danger:      oklch(0.65 0.18 25);
+  --ok:          oklch(0.78 0.13 145);
+  --serif:       'Instrument Serif', 'Playfair Display', Georgia, serif;
+  --sans:        'Inter', system-ui, sans-serif;
+  --mono:        'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Shared design-system utilities */
+.ogp-serif   { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; }
+.ogp-mono    { font-family: var(--mono); font-feature-settings: "ss01"; letter-spacing: 0; }
+.label-mono  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); }
+
+.ogp-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border: 1px solid var(--line); border-radius: 999px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.02em;
+  background: transparent; color: var(--fg);
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+  cursor: pointer; font-family: var(--sans);
+}
+.ogp-btn:hover   { background: oklch(0.22 0.008 270 / 0.6); border-color: var(--fg-3); }
+.ogp-btn:active  { transform: scale(0.98); }
+.ogp-btn-primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.ogp-btn-primary:hover { background: var(--accent); border-color: var(--accent); color: oklch(0.15 0.01 80); }
+.ogp-btn-accent  { background: var(--accent); color: oklch(0.15 0.01 80); border-color: var(--accent); }
+
+.ogp-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--fg-2);
+}
+.ogp-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); }
+.ogp-chip[data-status="delivered"] .ogp-chip-dot { background: var(--ok); }
+.ogp-chip[data-status="edit"] .ogp-chip-dot,
+.ogp-chip[data-status="color"] .ogp-chip-dot { background: var(--accent); }
+.ogp-chip[data-status="shoot"] .ogp-chip-dot { background: oklch(0.7 0.18 240); animation: chip-pulse 2s infinite; }
+.ogp-chip[data-status="pre"] .ogp-chip-dot { background: var(--fg-3); }
+
+@keyframes chip-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* Placeholder image surfaces */
+.ogp-ph {
+  position: relative;
+  background: linear-gradient(135deg, oklch(0.22 0.01 var(--ph-h, 270)) 0%, oklch(0.32 0.02 var(--ph-h, 270)) 100%);
+  overflow: hidden;
+}
+.ogp-ph::after {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, transparent 0, transparent 18px, oklch(1 0 0 / 0.025) 18px, oklch(1 0 0 / 0.025) 19px);
+}
+.ogp-ph[data-tone="1"] { --ph-h: 30; }
+.ogp-ph[data-tone="2"] { --ph-h: 220; }
+.ogp-ph[data-tone="3"] { --ph-h: 80; }
+.ogp-ph[data-tone="4"] { --ph-h: 340; }
+.ogp-ph[data-tone="5"] { --ph-h: 180; }
+.ogp-ph[data-tone="6"] { --ph-h: 290; }
+
+.ogp-frame {
+  border: 1px solid var(--line-soft); border-radius: 14px;
+  background: oklch(0.16 0.006 270 / 0.5); overflow: hidden;
+}
+
+@keyframes ogp-view-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ogp-view-in { animation: ogp-view-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes ogp-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 
 @theme {
   --color-gold: #C9A96E;

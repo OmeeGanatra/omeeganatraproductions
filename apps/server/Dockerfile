@@ -45,10 +45,10 @@ COPY --from=builder /app/apps/server/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/server/node_modules ./apps/server/node_modules
 
-# Copy Prisma schema and generated client
+# Copy Prisma schema and generated client (pnpm hoists to root node_modules)
 COPY --from=builder /app/packages/db/prisma ./prisma
-COPY --from=builder /app/packages/db/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/packages/db/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \

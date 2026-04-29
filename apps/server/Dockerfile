@@ -5,7 +5,6 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 WORKDIR /app
 
-# Copy workspace manifests for install caching
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
 COPY apps/server/package.json apps/server/
 COPY packages/db/package.json packages/db/
@@ -14,24 +13,17 @@ COPY packages/typescript-config/package.json packages/typescript-config/
 
 RUN pnpm install --frozen-lockfile
 
-# Copy all source
 COPY packages/db/ packages/db/
 COPY packages/shared-types/ packages/shared-types/
 COPY packages/typescript-config/ packages/typescript-config/
 COPY apps/server/ apps/server/
 
-# Generate Prisma client, compile db package, build server
+# Generate Prisma client (goes into pnpm store inside node_modules)
 RUN pnpm --filter @ogp/db generate
+# Compile @ogp/db to dist/
 RUN pnpm --filter @ogp/db build
+# Compile server to dist/
 RUN pnpm --filter @ogp/server build
-
-# pnpm deploy creates a self-contained production bundle:
-# resolves all workspace deps, removes devDeps, no broken symlinks
-RUN pnpm --filter @ogp/server deploy --prod /prod
-
-# Overlay the compiled output and Prisma schema into the deploy dir
-RUN cp -r /app/apps/server/dist /prod/dist
-RUN mkdir -p /prod/prisma && cp /app/packages/db/prisma/schema.prisma /prod/prisma/
 
 # ---- Stage 2: Runner ----
 FROM node:20-alpine AS runner
@@ -41,8 +33,22 @@ RUN apk add --no-cache dumb-init curl
 ENV NODE_ENV=production
 WORKDIR /app
 
-# Copy the self-contained bundle
-COPY --from=builder /prod ./
+# Server compiled output
+COPY --from=builder /app/apps/server/dist ./dist
+COPY --from=builder /app/apps/server/package.json ./package.json
+
+# The full node_modules tree — pnpm store (.pnpm/) contains the
+# generated Prisma query engine; symlinks inside node_modules resolve
+# correctly because we preserve the same relative paths.
+COPY --from=builder /app/node_modules ./node_modules
+
+# Workspace packages that node_modules symlinks point into
+COPY --from=builder /app/packages/db/dist         ./packages/db/dist
+COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
+COPY --from=builder /app/packages/shared-types    ./packages/shared-types
+
+# Prisma schema (used by migrate:deploy at deploy time, not at runtime)
+COPY --from=builder /app/packages/db/prisma ./prisma
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 server

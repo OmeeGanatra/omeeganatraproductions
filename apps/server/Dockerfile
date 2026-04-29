@@ -58,7 +58,7 @@ RUN if [ ! -d /prod/node_modules/.prisma ]; then \
       [ -n "$PDIR" ] && cp -r "$PDIR" /prod/node_modules/; \
     fi
 
-COPY --from=builder /app/packages/db/prisma /prod/prisma
+RUN cp -r /app/packages/db/prisma /prod/prisma
 
 # ---- Stage 2: Runner ----
 FROM node:20-alpine AS runner

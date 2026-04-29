@@ -20,8 +20,9 @@ COPY packages/shared-types/ packages/shared-types/
 COPY packages/typescript-config/ packages/typescript-config/
 COPY apps/server/ apps/server/
 
-# Generate Prisma client, build TypeScript
+# Generate Prisma client, compile db package, build server
 RUN pnpm --filter @ogp/db generate
+RUN pnpm --filter @ogp/db build
 RUN pnpm --filter @ogp/server build
 
 # pnpm deploy creates a self-contained production bundle:

@@ -1,0 +1,531 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+}
+
+enum UserType {
+  ADMIN
+  CLIENT
+}
+
+enum EventType {
+  WEDDING
+  ENGAGEMENT
+  PORTRAIT
+  COMMERCIAL
+  OTHER
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  DELIVERED
+  ARCHIVED
+}
+
+enum GalleryStatus {
+  DRAFT
+  PUBLISHED
+  EXPIRED
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+enum ClientRole {
+  PRIMARY
+  FAMILY
+  GUEST
+}
+
+enum NotificationType {
+  GALLERY_READY
+  NEW_PHOTOS
+  DOWNLOAD_READY
+  SHARE_RECEIVED
+  EXPIRY_WARNING
+  PRINT_UPDATE
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+  SMS
+}
+
+enum DownloadType {
+  SINGLE
+  GALLERY_ZIP
+  SELECTION_ZIP
+}
+
+enum PrintCategory {
+  PRINT
+  CANVAS
+  ALBUM
+  FRAME
+  ACRYLIC
+  METAL
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum AuditActorType {
+  ADMIN
+  CLIENT
+  SYSTEM
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid()) @map("id")
+  email        String    @unique @map("email")
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  role         UserRole  @default(EDITOR) @map("role")
+  avatarUrl    String?   @map("avatar_url")
+  otpSecret    String?   @map("otp_secret")
+  otpEnabled   Boolean   @default(false) @map("otp_enabled")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  projects          Project[]
+  clients           Client[]
+  mediaUploads      MediaItem[]
+  refreshTokens     RefreshToken[]
+  shareLinks        ShareLink[]
+  pushDeviceTokens  PushDeviceToken[]
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+model Client {
+  id                      String    @id @default(uuid()) @map("id")
+  email                   String    @unique @map("email")
+  passwordHash            String    @map("password_hash")
+  fullName                String    @map("full_name")
+  phone                   String?   @map("phone")
+  avatarUrl               String?   @map("avatar_url")
+  otpSecret               String?   @map("otp_secret")
+  otpEnabled              Boolean   @default(false) @map("otp_enabled")
+  notificationPreferences Json      @default("{}") @map("notification_preferences")
+  createdById             String    @map("created_by_id")
+  createdBy               User      @relation(fields: [createdById], references: [id])
+  lastLoginAt             DateTime? @map("last_login_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  projectClients   ProjectClient[]
+  favorites        Favorite[]
+  shareLinks       ShareLink[]
+  downloadLogs     DownloadLog[]
+  notifications    Notification[]
+  printOrders      PrintOrder[]
+  pushDeviceTokens PushDeviceToken[]
+  refreshTokens    RefreshToken[]
+
+  @@map("clients")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @map("id")
+  tokenHash  String   @unique @map("token_hash")
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId   String?  @map("client_id")
+  client     Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userType   UserType @map("user_type")
+  deviceInfo String?  @map("device_info")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Project {
+  id            String        @id @default(uuid()) @map("id")
+  title         String        @map("title")
+  slug          String        @unique @map("slug")
+  description   String?       @map("description")
+  eventDate     DateTime?     @map("event_date")
+  eventType     EventType     @map("event_type")
+  venue         String?       @map("venue")
+  city          String?       @map("city")
+  coverImageUrl String?       @map("cover_image_url")
+  status        ProjectStatus @default(DRAFT) @map("status")
+  watermarkText String?       @map("watermark_text")
+  settings      Json          @default("{}") @map("settings")
+  createdById   String        @map("created_by_id")
+  createdBy     User          @relation(fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  galleries             Gallery[]
+  projectClients        ProjectClient[]
+  shareLinks            ShareLink[]
+  weddingTimelineEvents WeddingTimelineEvent[]
+  mediaItems            MediaItem[]
+
+  @@index([status])
+  @@index([eventDate])
+  @@index([createdById])
+  @@map("projects")
+}
+
+model ProjectClient {
+  id        String     @id @default(uuid()) @map("id")
+  projectId String     @map("project_id")
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId  String     @map("client_id")
+  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  role      ClientRole @default(PRIMARY) @map("role")
+  grantedAt DateTime   @default(now()) @map("granted_at")
+
+  @@unique([projectId, clientId])
+  @@index([clientId])
+  @@map("project_clients")
+}
+
+model Gallery {
+  id                String        @id @default(uuid()) @map("id")
+  projectId         String        @map("project_id")
+  project           Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title             String        @map("title")
+  slug              String        @map("slug")
+  description       String?       @map("description")
+  coverImageUrl     String?       @map("cover_image_url")
+  sortOrder         Int           @default(0) @map("sort_order")
+  isPublic          Boolean       @default(false) @map("is_public")
+  passwordHash      String?       @map("password_hash")
+  downloadEnabled   Boolean       @default(true) @map("download_enabled")
+  downloadPin       String?       @map("download_pin")
+  watermarkEnabled  Boolean       @default(true) @map("watermark_enabled")
+  expiresAt         DateTime?     @map("expires_at")
+  status            GalleryStatus @default(DRAFT) @map("status")
+  mediaCount        Int           @default(0) @map("media_count")
+  totalSizeBytes    BigInt        @default(0) @map("total_size_bytes")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  mediaItems            MediaItem[]
+  shareLinks            ShareLink[]
+  downloadLogs          DownloadLog[]
+  weddingTimelineEvents WeddingTimelineEvent[]
+
+  @@unique([projectId, slug])
+  @@index([projectId, sortOrder])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("galleries")
+}
+
+model MediaItem {
+  id                    String    @id @default(uuid()) @map("id")
+  galleryId             String    @map("gallery_id")
+  gallery               Gallery   @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  projectId             String    @map("project_id")
+  project               Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type                  MediaType @map("type")
+  filenameOriginal      String    @map("filename_original")
+  storageKeyOriginal    String    @map("storage_key_original")
+  storageKeyWatermarked String?   @map("storage_key_watermarked")
+  storageKeyThumbnail   String    @map("storage_key_thumbnail")
+  storageKeyMedium      String    @map("storage_key_medium")
+  width                 Int?      @map("width")
+  height                Int?      @map("height")
+  fileSizeBytes         BigInt    @map("file_size_bytes")
+  mimeType              String    @map("mime_type")
+  blurhash              String?   @map("blurhash")
+  exifData              Json?     @map("exif_data")
+  videoUrl              String?   @map("video_url")
+  videoDurationSeconds  Float?    @map("video_duration_seconds")
+  sortOrder             Int       @default(0) @map("sort_order")
+  isHighlight           Boolean   @default(false) @map("is_highlight")
+  aiFaces               Json?     @map("ai_faces")
+  aiTags                String[]  @map("ai_tags")
+  uploadedById          String    @map("uploaded_by_id")
+  uploadedBy            User      @relation(fields: [uploadedById], references: [id])
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  favorites       Favorite[]
+  downloadLogs    DownloadLog[]
+  printOrderItems PrintOrderItem[]
+
+  @@index([galleryId, sortOrder])
+  @@index([projectId])
+  @@index([type])
+  @@index([isHighlight])
+  @@map("media_items")
+}
+
+model Favorite {
+  id          String    @id @default(uuid()) @map("id")
+  clientId    String    @map("client_id")
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  mediaItemId String    @map("media_item_id")
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  note        String?   @map("note")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([clientId, mediaItemId])
+  @@index([clientId])
+  @@map("favorites")
+}
+
+model ShareLink {
+  id                String    @id @default(uuid()) @map("id")
+  token             String    @unique @map("token")
+  galleryId         String?   @map("gallery_id")
+  gallery           Gallery?  @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  projectId         String?   @map("project_id")
+  project           Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdByClientId String?   @map("created_by_client_id")
+  createdByClient   Client?   @relation(fields: [createdByClientId], references: [id], onDelete: SetNull)
+  createdByUserId   String?   @map("created_by_user_id")
+  createdByUser     User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  passwordHash      String?   @map("password_hash")
+  allowDownload     Boolean   @default(false) @map("allow_download")
+  maxViews          Int?      @map("max_views")
+  viewCount         Int       @default(0) @map("view_count")
+  expiresAt         DateTime? @map("expires_at")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([galleryId])
+  @@index([projectId])
+  @@index([expiresAt])
+  @@map("share_links")
+}
+
+model DownloadLog {
+  id             String       @id @default(uuid()) @map("id")
+  clientId       String?      @map("client_id")
+  client         Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  mediaItemId    String?      @map("media_item_id")
+  mediaItem      MediaItem?   @relation(fields: [mediaItemId], references: [id], onDelete: SetNull)
+  galleryId      String?      @map("gallery_id")
+  gallery        Gallery?     @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  downloadType   DownloadType @map("download_type")
+  fileCount      Int          @default(1) @map("file_count")
+  totalSizeBytes BigInt       @map("total_size_bytes")
+  ipAddress      String?      @map("ip_address")
+  userAgent      String?      @map("user_agent")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([clientId])
+  @@index([galleryId])
+  @@index([createdAt])
+  @@map("download_logs")
+}
+
+model Notification {
+  id               String              @id @default(uuid()) @map("id")
+  recipientClientId String?            @map("recipient_client_id")
+  recipientClient  Client?             @relation(fields: [recipientClientId], references: [id], onDelete: Cascade)
+  recipientUserId  String?             @map("recipient_user_id")
+  recipientUser    User?               @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  type             NotificationType    @map("type")
+  title            String              @map("title")
+  body             String              @map("body")
+  data             Json?               @map("data")
+  channel          NotificationChannel @map("channel")
+  isRead           Boolean             @default(false) @map("is_read")
+  sentAt           DateTime?           @map("sent_at")
+  readAt           DateTime?           @map("read_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+
+  @@index([recipientClientId, isRead])
+  @@index([recipientUserId, isRead])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model PushDeviceToken {
+  id        String         @id @default(uuid()) @map("id")
+  clientId  String?        @map("client_id")
+  client    Client?        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId    String?        @map("user_id")
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String         @unique @map("token")
+  platform  DevicePlatform @map("platform")
+  isActive  Boolean        @default(true) @map("is_active")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([userId])
+  @@map("push_device_tokens")
+}
+
+model WeddingTimelineEvent {
+  id          String    @id @default(uuid()) @map("id")
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String    @map("title")
+  description String?   @map("description")
+  eventTime   DateTime  @map("event_time")
+  endTime     DateTime? @map("end_time")
+  location    String?   @map("location")
+  icon        String?   @map("icon")
+  galleryId   String?   @map("gallery_id")
+  gallery     Gallery?  @relation(fields: [galleryId], references: [id], onDelete: SetNull)
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([projectId, eventTime])
+  @@index([projectId, sortOrder])
+  @@map("wedding_timeline_events")
+}
+
+model PrintProduct {
+  id            String        @id @default(uuid()) @map("id")
+  name          String        @map("name")
+  category      PrintCategory @map("category")
+  description   String?       @map("description")
+  basePriceCents Int          @map("base_price_cents")
+  sizes         Json          @map("sizes")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  orderItems PrintOrderItem[]
+
+  @@map("print_products")
+}
+
+model PrintOrder {
+  id              String        @id @default(uuid()) @map("id")
+  orderNumber     String        @unique @map("order_number")
+  clientId        String        @map("client_id")
+  client          Client        @relation(fields: [clientId], references: [id])
+  status          OrderStatus   @default(PENDING) @map("status")
+  shippingAddress Json          @map("shipping_address")
+  subtotalCents   Int           @map("subtotal_cents")
+  taxCents        Int           @default(0) @map("tax_cents")
+  shippingCents   Int           @default(0) @map("shipping_cents")
+  totalCents      Int           @map("total_cents")
+  paymentIntentId String?       @map("payment_intent_id")
+  paymentStatus   PaymentStatus @default(UNPAID) @map("payment_status")
+  trackingNumber  String?       @map("tracking_number")
+  notes           String?       @map("notes")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  orderItems PrintOrderItem[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("print_orders")
+}
+
+model PrintOrderItem {
+  id             String       @id @default(uuid()) @map("id")
+  orderId        String       @map("order_id")
+  order          PrintOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  mediaItemId    String       @map("media_item_id")
+  mediaItem      MediaItem    @relation(fields: [mediaItemId], references: [id])
+  productId      String       @map("product_id")
+  product        PrintProduct @relation(fields: [productId], references: [id])
+  sizeLabel      String       @map("size_label")
+  quantity       Int          @default(1) @map("quantity")
+  unitPriceCents Int          @map("unit_price_cents")
+  cropData       Json?        @map("crop_data")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("print_order_items")
+}
+
+model AuditLog {
+  id           BigInt         @id @default(autoincrement()) @map("id")
+  actorType    AuditActorType @map("actor_type")
+  actorId      String?        @map("actor_id")
+  action       String         @map("action")
+  resourceType String         @map("resource_type")
+  resourceId   String?        @map("resource_id")
+  metadata     Json?          @map("metadata")
+  ipAddress    String?        @map("ip_address")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  @@index([actorId, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid()) @map("id")
+  tokenHash  String    @unique @map("token_hash")
+  userType   UserType  @map("user_type")
+  userId     String?   @map("user_id")
+  clientId   String?   @map("client_id")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model OtpChallenge {
+  id         String    @id @default(uuid()) @map("id")
+  userType   UserType  @map("user_type")
+  userId     String?   @map("user_id")
+  clientId   String?   @map("client_id")
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0) @map("attempts")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([expiresAt])
+  @@map("otp_challenges")
+}

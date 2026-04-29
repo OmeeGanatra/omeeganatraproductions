@@ -87,3 +87,4 @@ pubspec.lock
 .cache/
 tmp/
 temp/
+functions/.env

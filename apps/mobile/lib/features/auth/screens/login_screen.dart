@@ -73,274 +73,318 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.scaffoldDark,
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.3),
-            radius: 1.2,
-            colors: [
-              AppColors.gold.withOpacity(0.06),
-              AppColors.scaffoldDark,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: SizedBox(
-                  height: size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
-                  child: Column(
-                    children: [
-                      const Spacer(flex: 2),
-
-                      // Logo
-                      _buildLogo(),
-                      const SizedBox(height: 48),
-
-                      // Welcome text
-                      Text(
-                        'Welcome Back',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sign in to view your galleries',
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          color: AppColors.textTertiary,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-
-                      // Form
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            // Email field
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              style: GoogleFonts.inter(
-                                color: AppColors.textPrimary,
-                                fontSize: 15,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(
-                                  Icons.mail_outline,
-                                  color: AppColors.textTertiary,
-                                  size: 20,
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                    .hasMatch(value)) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
+      backgroundColor: AppColors.scaffoldDark,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: SizedBox(
+              height: size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+              child: Column(
+                children: [
+                  // ── Top bar: logo + brand name ──────────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        left: 28, right: 28, top: 60),
+                    child: Row(
+                      children: [
+                        // OGP monogram in a small circle
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.gold.withOpacity(0.5),
+                              width: 1,
                             ),
-                            const SizedBox(height: 20),
-
-                            // Password field
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _handleLogin(),
-                              style: GoogleFonts.inter(
-                                color: AppColors.textPrimary,
-                                fontSize: 15,
+                          ),
+                          child: Center(
+                            child: Text(
+                              'O',
+                              style: GoogleFonts.instrumentSerif(
+                                fontSize: 11,
+                                color: AppColors.gold,
                               ),
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline,
-                                  color: AppColors.textTertiary,
-                                  size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Omee Ganatra',
+                          style: GoogleFonts.instrumentSerif(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Main content ─────────────────────────────────────
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 48),
+
+                          // "SIGN IN" mono label
+                          Text(
+                            'SIGN IN',
+                            style: AppTheme.labelMono(),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // "Welcome\nback." heading
+                          Text(
+                            'Welcome\nback.',
+                            style: GoogleFonts.instrumentSerif(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.textPrimary,
+                              letterSpacing: 40 * -0.02, // -0.02em
+                              height: 1.05,
+                            ),
+                          ),
+                          const SizedBox(height: 48),
+
+                          // ── Form ───────────────────────────────────
+                          Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // EMAIL label + field
+                                Text(
+                                  'EMAIL',
+                                  style: AppTheme.labelMono(),
                                 ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: AppColors.textTertiary,
-                                    size: 20,
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 15,
                                   ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
+                                  decoration: InputDecoration(
+                                    hintText: 'your@email.com',
+                                    hintStyle: GoogleFonts.inter(
+                                      color: AppColors.textTertiary,
+                                      fontSize: 14,
+                                    ),
+                                    filled: true,
+                                    fillColor: AppColors.surfaceDark,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 16),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: Color(0xFF2A2A2A)),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.gold, width: 1.5),
+                                    ),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.error),
+                                    ),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.error, width: 1.5),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter your email';
+                                    }
+                                    if (!RegExp(
+                                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                        .hasMatch(value)) {
+                                      return 'Please enter a valid email';
+                                    }
+                                    return null;
                                   },
                                 ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your password';
-                                }
-                                return null;
-                              },
+                                const SizedBox(height: 20),
+
+                                // PASSWORD label + field
+                                Text(
+                                  'PASSWORD',
+                                  style: AppTheme.labelMono(),
+                                ),
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (_) => _handleLogin(),
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 15,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: '••••••••',
+                                    hintStyle: GoogleFonts.inter(
+                                      color: AppColors.textTertiary,
+                                      fontSize: 14,
+                                    ),
+                                    filled: true,
+                                    fillColor: AppColors.surfaceDark,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 16),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: Color(0xFF2A2A2A)),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.gold, width: 1.5),
+                                    ),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.error),
+                                    ),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.error, width: 1.5),
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: AppColors.textTertiary,
+                                        size: 18,
+                                      ),
+                                      onPressed: () => setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      }),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter your password';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
                             ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // ── Error message ───────────────────────────
+                          if (authState.error != null) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.error.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline,
+                                      color: AppColors.error, size: 16),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      authState.error!,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
 
-                      // Forgot password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            // TODO: Navigate to forgot password
-                          },
-                          child: Text(
-                            'Forgot Password?',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: AppColors.gold,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Error message
-                      if (authState.error != null) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.error.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.error.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: AppColors.error,
-                                size: 18,
+                          // ── CTA button ──────────────────────────────
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              onPressed:
+                                  authState.isLoading ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.gold,
+                                foregroundColor: AppColors.scaffoldDark,
+                                disabledBackgroundColor:
+                                    AppColors.gold.withOpacity(0.5),
+                                elevation: 0,
+                                shape: const StadiumBorder(),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  authState.error!,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    color: AppColors.error,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // Sign in button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: authState.isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.gold,
-                            foregroundColor: AppColors.scaffoldDark,
-                            disabledBackgroundColor:
-                                AppColors.gold.withOpacity(0.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              child: authState.isLoading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.scaffoldDark,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Enter the vault →',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.3,
+                                        color: AppColors.scaffoldDark,
+                                      ),
+                                    ),
                             ),
                           ),
-                          child: authState.isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: AppColors.scaffoldDark,
-                                  ),
-                                )
-                              : Text(
-                                  'Sign In',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                        ),
-                      ),
 
-                      const Spacer(flex: 3),
-
-                      // Footer
-                      Text(
-                        'Omee Ganatra Productions',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 13,
-                          color: AppColors.textTertiary,
-                          letterSpacing: 1,
-                        ),
+                          const SizedBox(height: 80),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                    ],
+                    ),
                   ),
-                ),
+
+                  // ── Footer ───────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 28),
+                    child: Text(
+                      'TLS 1.3 · AES-256 · FACE ID',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9,
+                        letterSpacing: 0.12 * 9,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildLogo() {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: AppColors.gold.withOpacity(0.3),
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              'OGP',
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: AppColors.gold,
-                letterSpacing: 3,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

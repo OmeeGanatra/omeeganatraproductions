@@ -42,6 +42,16 @@ class AppColors {
 class AppTheme {
   AppTheme._();
 
+  /// JetBrains Mono label for tags, metadata, mono caps text.
+  static TextStyle labelMono({Color color = AppColors.textTertiary}) {
+    return GoogleFonts.jetBrainsMono(
+      fontSize: 10,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.14 * 10, // 0.14em at 10px
+      color: color,
+    );
+  }
+
   static TextTheme _buildTextTheme(Brightness brightness) {
     final Color primary = brightness == Brightness.dark
         ? AppColors.textPrimary
@@ -51,35 +61,35 @@ class AppTheme {
         : AppColors.textSecondaryLight;
 
     return TextTheme(
-      displayLarge: GoogleFonts.playfairDisplay(
+      displayLarge: GoogleFonts.instrumentSerif(
         fontSize: 57,
         fontWeight: FontWeight.w400,
         color: primary,
         letterSpacing: -0.25,
       ),
-      displayMedium: GoogleFonts.playfairDisplay(
+      displayMedium: GoogleFonts.instrumentSerif(
         fontSize: 45,
         fontWeight: FontWeight.w400,
         color: primary,
       ),
-      displaySmall: GoogleFonts.playfairDisplay(
+      displaySmall: GoogleFonts.instrumentSerif(
         fontSize: 36,
         fontWeight: FontWeight.w400,
         color: primary,
       ),
-      headlineLarge: GoogleFonts.playfairDisplay(
+      headlineLarge: GoogleFonts.instrumentSerif(
         fontSize: 32,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
         color: primary,
       ),
-      headlineMedium: GoogleFonts.playfairDisplay(
+      headlineMedium: GoogleFonts.instrumentSerif(
         fontSize: 28,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
         color: primary,
       ),
-      headlineSmall: GoogleFonts.playfairDisplay(
+      headlineSmall: GoogleFonts.instrumentSerif(
         fontSize: 24,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
         color: primary,
       ),
       titleLarge: GoogleFonts.inter(
@@ -160,9 +170,9 @@ class AppTheme {
       elevation: 0,
       scrolledUnderElevation: 0.5,
       centerTitle: true,
-      titleTextStyle: GoogleFonts.playfairDisplay(
+      titleTextStyle: GoogleFonts.instrumentSerif(
         fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
         color: AppColors.textPrimary,
       ),
     ),
@@ -330,9 +340,9 @@ class AppTheme {
       foregroundColor: AppColors.textPrimaryLight,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: GoogleFonts.playfairDisplay(
+      titleTextStyle: GoogleFonts.instrumentSerif(
         fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
         color: AppColors.textPrimaryLight,
       ),
     ),

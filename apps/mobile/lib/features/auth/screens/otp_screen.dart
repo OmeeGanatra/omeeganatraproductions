@@ -167,9 +167,9 @@ class _OTPScreenState extends ConsumerState<OTPScreen>
 
                   Text(
                     'Verification Code',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
+                    style: GoogleFonts.instrumentSerif(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w400,
                       color: AppColors.textPrimary,
                     ),
                   ),

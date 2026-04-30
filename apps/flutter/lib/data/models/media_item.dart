@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum MediaType { photo, video }
 
 class MediaItem {
@@ -35,25 +37,48 @@ class MediaItem {
     this.exifData,
   });
 
-  factory MediaItem.fromJson(Map<String, dynamic> json) {
+  factory MediaItem.fromFirestore(DocumentSnapshot doc) {
+    final j = doc.data() as Map<String, dynamic>? ?? {};
     return MediaItem(
-      id: json['id'] as String,
-      galleryId: json['galleryId'] as String,
-      type: (json['type'] as String?)?.toLowerCase() == 'video'
+      id: doc.id,
+      galleryId: j['galleryId'] as String? ?? '',
+      type: (j['type'] as String?)?.toLowerCase() == 'video'
           ? MediaType.video
           : MediaType.photo,
-      filenameOriginal: json['filenameOriginal'] as String? ?? '',
-      thumbnailUrl: json['thumbnailUrl'] as String?,
-      displayUrl: json['displayUrl'] as String?,
-      videoUrl: json['videoUrl'] as String?,
-      width: json['width'] as int?,
-      height: json['height'] as int?,
-      fileSizeBytes: json['fileSizeBytes'] as int?,
-      blurhash: json['blurhash'] as String?,
-      isHighlight: json['isHighlight'] as bool? ?? false,
-      isFavorited: json['isFavorited'] as bool? ?? false,
-      sortOrder: json['sortOrder'] as int? ?? 0,
-      exifData: json['exifData'] as Map<String, dynamic>?,
+      filenameOriginal: j['filenameOriginal'] as String? ?? '',
+      thumbnailUrl: j['thumbnailUrl'] as String?,
+      displayUrl: j['displayUrl'] as String?,
+      videoUrl: j['videoUrl'] as String?,
+      width: j['width'] as int?,
+      height: j['height'] as int?,
+      fileSizeBytes: j['fileSizeBytes'] as int?,
+      blurhash: j['blurhash'] as String?,
+      isHighlight: j['isHighlight'] as bool? ?? false,
+      isFavorited: j['isFavorited'] as bool? ?? false,
+      sortOrder: j['sortOrder'] as int? ?? 0,
+      exifData: j['exifData'] as Map<String, dynamic>?,
+    );
+  }
+
+  factory MediaItem.fromJson(Map<String, dynamic> j) {
+    return MediaItem(
+      id: j['id'] as String? ?? '',
+      galleryId: j['galleryId'] as String? ?? '',
+      type: (j['type'] as String?)?.toLowerCase() == 'video'
+          ? MediaType.video
+          : MediaType.photo,
+      filenameOriginal: j['filenameOriginal'] as String? ?? '',
+      thumbnailUrl: j['thumbnailUrl'] as String?,
+      displayUrl: j['displayUrl'] as String?,
+      videoUrl: j['videoUrl'] as String?,
+      width: j['width'] as int?,
+      height: j['height'] as int?,
+      fileSizeBytes: j['fileSizeBytes'] as int?,
+      blurhash: j['blurhash'] as String?,
+      isHighlight: j['isHighlight'] as bool? ?? false,
+      isFavorited: j['isFavorited'] as bool? ?? false,
+      sortOrder: j['sortOrder'] as int? ?? 0,
+      exifData: j['exifData'] as Map<String, dynamic>?,
     );
   }
 

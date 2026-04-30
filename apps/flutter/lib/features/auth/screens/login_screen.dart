@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/ogp_button.dart';
 import '../../../shared/widgets/ogp_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, this.isAdmin = false});
-  final bool isAdmin;
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -19,13 +17,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _isAdmin = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isAdmin = widget.isAdmin;
-  }
 
   @override
   void dispose() {
@@ -38,13 +29,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     await ref
         .read(authProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passCtrl.text, isAdmin: _isAdmin);
-
-    if (!mounted) return;
-    final state = ref.read(authProvider);
-    if (state.requiresOtp) {
-      context.go('/otp');
-    }
+        .login(_emailCtrl.text.trim(), _passCtrl.text);
   }
 
   @override
@@ -72,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isAdmin ? 'Admin Portal' : 'Client Portal',
+                      'Sign in to your portal',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 48),
@@ -99,7 +84,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onSubmitted: (_) => _submit(),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                         ),
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
@@ -112,7 +99,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 12),
                       Text(
                         authState.error!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13),
+                        style:
+                            const TextStyle(color: AppColors.error, fontSize: 13),
                       ),
                     ],
                     const SizedBox(height: 32),
@@ -121,16 +109,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _submit,
                       isLoading: isLoading,
                       isFullWidth: true,
-                    ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: TextButton(
-                        onPressed: () => setState(() => _isAdmin = !_isAdmin),
-                        child: Text(
-                          _isAdmin ? 'Client login' : 'Admin login',
-                          style: const TextStyle(color: AppColors.textTertiary),
-                        ),
-                      ),
                     ),
                   ],
                 ),

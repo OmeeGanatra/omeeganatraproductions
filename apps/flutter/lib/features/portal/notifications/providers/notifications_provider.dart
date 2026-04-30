@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/api/api_client.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../../../data/repositories/notification_repository.dart';
 
-final _repo = NotificationRepository(ApiClient.instance);
+final _repo = NotificationRepository();
 
 class NotificationsNotifier
     extends StateNotifier<AsyncValue<List<NotificationModel>>> {
@@ -24,9 +23,8 @@ class NotificationsNotifier
   Future<void> markRead(String id) async {
     await _repo.markRead(id);
     state = state.whenData(
-      (items) => items
-          .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
-          .toList(),
+      (items) =>
+          items.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList(),
     );
   }
 

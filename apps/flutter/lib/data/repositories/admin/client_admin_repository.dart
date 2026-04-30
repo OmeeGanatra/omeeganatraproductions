@@ -1,48 +1,47 @@
-import '../../../core/api/api_client.dart';
-import '../../../core/api/endpoints.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../models/client_model.dart';
 
 class ClientAdminRepository {
-  const ClientAdminRepository(this._api);
-  final ApiClient _api;
+  final _db = FirebaseFirestore.instance;
 
   Future<List<ClientModel>> listClients() async {
-    final r = await _api.get(Endpoints.adminClients);
-    final data = r.data;
-    final items = data is Map ? (data['clients'] ?? data['data'] ?? []) : data;
-    return (items as List)
-        .map((j) => ClientModel.fromJson(j as Map<String, dynamic>))
-        .toList();
+    final snap = await _db
+        .collection('clients')
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((d) => ClientModel.fromFirestore(d)).toList();
   }
 
   Future<ClientModel> getClient(String id) async {
-    final r = await _api.get(Endpoints.adminClient(id));
-    final data = r.data;
-    final json = data is Map && data['client'] != null
-        ? data['client'] as Map<String, dynamic>
-        : data as Map<String, dynamic>;
-    return ClientModel.fromJson(json);
+    final doc = await _db.collection('clients').doc(id).get();
+    return ClientModel.fromFirestore(doc);
   }
 
-  Future<ClientModel> createClient(Map<String, dynamic> body) async {
-    final r = await _api.post(Endpoints.adminClients, data: body);
-    final data = r.data;
-    final json = data is Map && data['client'] != null
-        ? data['client'] as Map<String, dynamic>
-        : data as Map<String, dynamic>;
-    return ClientModel.fromJson(json);
+  Future<ClientModel> createClient(Map<String, dynamic> data) async {
+    // Create Firebase Auth account then write the Firestore profile.
+    final cred = await fb.FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: data['email'] as String,
+      password: data['tempPassword'] as String? ?? 'changeme123!',
+    );
+    final uid = cred.user!.uid;
+    await _db.collection('clients').doc(uid).set({
+      'uid': uid,
+      'email': data['email'],
+      'fullName': data['fullName'] ?? '',
+      'phone': data['phone'],
+      'tier': data['tier'] ?? 'SIGNATURE',
+      'status': 'active',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return getClient(uid);
   }
 
-  Future<ClientModel> updateClient(String id, Map<String, dynamic> body) async {
-    final r = await _api.put(Endpoints.adminClient(id), data: body);
-    final data = r.data;
-    final json = data is Map && data['client'] != null
-        ? data['client'] as Map<String, dynamic>
-        : data as Map<String, dynamic>;
-    return ClientModel.fromJson(json);
+  Future<void> updateClient(String id, Map<String, dynamic> data) async {
+    await _db.collection('clients').doc(id).update(data);
   }
 
   Future<void> deleteClient(String id) async {
-    await _api.delete(Endpoints.adminClient(id));
+    await _db.collection('clients').doc(id).delete();
   }
 }

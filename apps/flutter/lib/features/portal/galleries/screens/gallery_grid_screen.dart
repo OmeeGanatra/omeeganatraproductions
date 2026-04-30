@@ -20,8 +20,10 @@ class GalleryGridScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final galleryAsync = ref.watch(galleryProvider(galleryId));
-    final mediaAsync = ref.watch(galleryMediaProvider(galleryId));
+    // projectSlug doubles as the projectId lookup key in Firestore
+    final params = (projectId: projectSlug, galleryId: galleryId);
+    final galleryAsync = ref.watch(galleryProvider(params));
+    final mediaAsync = ref.watch(galleryMediaProvider(params));
 
     return Scaffold(
       appBar: AppBar(
@@ -42,7 +44,7 @@ class GalleryGridScreen extends ConsumerWidget {
         loading: () => const ShimmerGrid(count: 12),
         error: (e, _) => OgpErrorView(
           message: e.toString(),
-          onRetry: () => ref.invalidate(galleryMediaProvider(galleryId)),
+          onRetry: () => ref.invalidate(galleryMediaProvider(params)),
         ),
         data: (media) {
           if (media.isEmpty) {
@@ -83,13 +85,15 @@ class GalleryGridScreen extends ConsumerWidget {
                       const Positioned(
                         top: 6,
                         right: 6,
-                        child: Icon(Icons.favorite, color: Colors.white, size: 16),
+                        child: Icon(Icons.favorite,
+                            color: Colors.white, size: 16),
                       ),
                     if (item.type == MediaType.photo && item.isHighlight)
                       const Positioned(
                         top: 6,
                         left: 6,
-                        child: Icon(Icons.star, color: AppColors.gold, size: 14),
+                        child: Icon(Icons.star,
+                            color: AppColors.gold, size: 14),
                       ),
                   ],
                 ),

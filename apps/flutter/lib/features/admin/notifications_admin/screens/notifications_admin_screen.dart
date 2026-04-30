@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/api/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/repositories/admin/notification_admin_repository.dart';
 import '../../../../shared/widgets/ogp_button.dart';
@@ -16,7 +15,7 @@ class NotificationsAdminScreen extends ConsumerStatefulWidget {
 
 class _NotificationsAdminScreenState
     extends ConsumerState<NotificationsAdminScreen> {
-  final _repo = NotificationAdminRepository(ApiClient.instance);
+  final _repo = NotificationAdminRepository();
   final _titleCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
   bool _isBroadcast = true;
@@ -76,14 +75,14 @@ class _NotificationsAdminScreenState
                     label: const Text('Broadcast'),
                     selected: _isBroadcast,
                     onSelected: (v) => setState(() => _isBroadcast = true),
-                    selectedColor: AppColors.gold.withOpacity(0.2),
+                    selectedColor: AppColors.gold.withValues(alpha: 0.2),
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
                     label: const Text('Specific Client'),
                     selected: !_isBroadcast,
                     onSelected: (v) => setState(() => _isBroadcast = false),
-                    selectedColor: AppColors.gold.withOpacity(0.2),
+                    selectedColor: AppColors.gold.withValues(alpha: 0.2),
                   ),
                 ],
               ),

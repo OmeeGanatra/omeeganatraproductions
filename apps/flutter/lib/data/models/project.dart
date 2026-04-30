@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Project {
   final String id;
   final String title;
@@ -11,6 +13,7 @@ class Project {
   final String status;
   final int galleryCount;
   final int totalMediaCount;
+  final List<String> clientIds;
 
   const Project({
     required this.id,
@@ -25,25 +28,53 @@ class Project {
     this.status = 'active',
     this.galleryCount = 0,
     this.totalMediaCount = 0,
+    this.clientIds = const [],
   });
 
-  factory Project.fromJson(Map<String, dynamic> json) {
+  factory Project.fromFirestore(DocumentSnapshot doc) {
+    final j = doc.data() as Map<String, dynamic>? ?? {};
     return Project(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      slug: json['slug'] as String,
-      description: json['description'] as String?,
-      eventDate: json['eventDate'] != null
-          ? DateTime.parse(json['eventDate'] as String)
-          : null,
-      eventType: json['eventType'] as String?,
-      venue: json['venue'] as String?,
-      city: json['city'] as String?,
-      coverImageUrl: json['coverImageUrl'] as String?,
-      status: json['status'] as String? ?? 'active',
-      galleryCount: json['galleryCount'] as int? ?? 0,
-      totalMediaCount: json['totalMediaCount'] as int? ?? 0,
+      id: doc.id,
+      title: j['title'] as String? ?? '',
+      slug: j['slug'] as String? ?? doc.id,
+      description: j['description'] as String?,
+      eventDate: _parseDate(j['eventDate']),
+      eventType: j['eventType'] as String?,
+      venue: j['venue'] as String?,
+      city: j['city'] as String?,
+      coverImageUrl: j['coverImageUrl'] as String?,
+      status: j['status'] as String? ?? 'active',
+      galleryCount: j['galleryCount'] as int? ?? 0,
+      totalMediaCount: j['totalMediaCount'] as int? ?? 0,
+      clientIds: List<String>.from(j['clientIds'] as List<dynamic>? ?? []),
     );
+  }
+
+  factory Project.fromJson(Map<String, dynamic> j) {
+    return Project(
+      id: j['id'] as String? ?? '',
+      title: j['title'] as String? ?? '',
+      slug: j['slug'] as String? ?? '',
+      description: j['description'] as String?,
+      eventDate: j['eventDate'] != null
+          ? DateTime.tryParse(j['eventDate'] as String)
+          : null,
+      eventType: j['eventType'] as String?,
+      venue: j['venue'] as String?,
+      city: j['city'] as String?,
+      coverImageUrl: j['coverImageUrl'] as String?,
+      status: j['status'] as String? ?? 'active',
+      galleryCount: j['galleryCount'] as int? ?? 0,
+      totalMediaCount: j['totalMediaCount'] as int? ?? 0,
+      clientIds: List<String>.from(j['clientIds'] as List<dynamic>? ?? []),
+    );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {
@@ -60,12 +91,13 @@ class Project {
       'status': status,
       'galleryCount': galleryCount,
       'totalMediaCount': totalMediaCount,
+      'clientIds': clientIds,
     };
   }
 
   String get formattedDate {
     if (eventDate == null) return '';
-    final months = [
+    const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];

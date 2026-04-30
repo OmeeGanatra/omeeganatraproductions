@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/cached_image.dart';
 import '../../../../shared/widgets/ogp_empty_state.dart';
 import '../../../../shared/widgets/ogp_error_view.dart';
 import '../../../../shared/widgets/ogp_shimmer.dart';
@@ -23,8 +21,8 @@ class FavoritesScreen extends ConsumerWidget {
           message: e.toString(),
           onRetry: () => ref.read(favoritesProvider.notifier).refresh(),
         ),
-        data: (items) {
-          if (items.isEmpty) {
+        data: (ids) {
+          if (ids.isEmpty) {
             return const OgpEmptyState(
               message: 'No favorites yet.\nTap the heart on any photo.',
               icon: Icons.favorite_outline,
@@ -37,17 +35,23 @@ class FavoritesScreen extends ConsumerWidget {
               crossAxisSpacing: 2,
               mainAxisSpacing: 2,
             ),
-            itemCount: items.length,
+            itemCount: ids.length,
             itemBuilder: (context, i) {
-              final item = items[i];
+              final mediaId = ids[i];
               return GestureDetector(
-                onTap: () => context.go('/portal/media/${item.id}'),
+                onTap: () => context.go('/portal/media/$mediaId'),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    item.thumbnailUrl != null
-                        ? CachedImage(url: item.thumbnailUrl!, fit: BoxFit.cover)
-                        : Container(color: AppColors.surfaceDark),
+                    // Without a cached thumbnail URL here, show a placeholder.
+                    // Full media details are loaded in MediaViewerScreen.
+                    Container(
+                      color: Colors.grey[900],
+                      child: const Center(
+                        child: Icon(Icons.photo_outlined,
+                            color: Colors.white38, size: 32),
+                      ),
+                    ),
                     const Positioned(
                       top: 6,
                       right: 6,

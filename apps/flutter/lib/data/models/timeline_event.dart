@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class TimelineEvent {
   final String id;
   final String projectId;
@@ -21,18 +23,40 @@ class TimelineEvent {
     this.sortOrder = 0,
   });
 
-  factory TimelineEvent.fromJson(Map<String, dynamic> json) {
+  factory TimelineEvent.fromFirestore(DocumentSnapshot doc) {
+    final j = doc.data() as Map<String, dynamic>? ?? {};
     return TimelineEvent(
-      id: json['id'] as String,
-      projectId: json['projectId'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String?,
-      eventDate: DateTime.parse(json['eventDate'] as String),
-      type: json['type'] as String?,
-      imageUrl: json['imageUrl'] as String?,
-      isCompleted: json['isCompleted'] as bool? ?? false,
-      sortOrder: json['sortOrder'] as int? ?? 0,
+      id: doc.id,
+      projectId: j['projectId'] as String? ?? '',
+      title: j['title'] as String? ?? '',
+      description: j['description'] as String?,
+      eventDate: _parseDate(j['eventTime'] ?? j['eventDate']) ?? DateTime.now(),
+      type: j['type'] as String?,
+      imageUrl: j['imageUrl'] as String?,
+      isCompleted: j['isCompleted'] as bool? ?? false,
+      sortOrder: j['sortOrder'] as int? ?? 0,
     );
+  }
+
+  factory TimelineEvent.fromJson(Map<String, dynamic> j) {
+    return TimelineEvent(
+      id: j['id'] as String? ?? '',
+      projectId: j['projectId'] as String? ?? '',
+      title: j['title'] as String? ?? '',
+      description: j['description'] as String?,
+      eventDate: DateTime.tryParse(j['eventDate'] as String? ?? '') ?? DateTime.now(),
+      type: j['type'] as String?,
+      imageUrl: j['imageUrl'] as String?,
+      isCompleted: j['isCompleted'] as bool? ?? false,
+      sortOrder: j['sortOrder'] as int? ?? 0,
+    );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {
@@ -50,7 +74,7 @@ class TimelineEvent {
   }
 
   String get formattedDate {
-    final months = [
+    const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];

@@ -1,44 +1,43 @@
-import '../../core/api/api_client.dart';
-import '../../core/api/endpoints.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/gallery.dart';
 import '../models/media_item.dart';
 
 class GalleryRepository {
-  const GalleryRepository(this._api);
-  final ApiClient _api;
+  final _db = FirebaseFirestore.instance;
 
-  Future<Gallery> getGallery(String galleryId) async {
-    final r = await _api.get(Endpoints.gallery(galleryId));
-    final data = r.data;
-    return Gallery.fromJson(
-      data is Map && data['gallery'] != null
-          ? data['gallery'] as Map<String, dynamic>
-          : data as Map<String, dynamic>,
-    );
+  Future<Gallery> getGallery(String projectId, String galleryId) async {
+    final doc = await _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('galleries')
+        .doc(galleryId)
+        .get();
+    return Gallery.fromFirestore(doc);
   }
 
-  Future<List<MediaItem>> listMedia(String galleryId) async {
-    final r = await _api.get(Endpoints.galleryMedia(galleryId));
-    final data = r.data;
-    final items = data is Map ? (data['media'] ?? data['data'] ?? []) : data;
-    return (items as List)
-        .map((j) => MediaItem.fromJson(j as Map<String, dynamic>))
-        .toList();
+  Future<List<MediaItem>> listMedia(String projectId, String galleryId) async {
+    final snap = await _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('galleries')
+        .doc(galleryId)
+        .collection('media')
+        .orderBy('sortOrder')
+        .get();
+    return snap.docs.map((d) => MediaItem.fromFirestore(d)).toList();
   }
 
-  Future<String> verifyPassword(String galleryId, String password) async {
-    final r = await _api.post(
-      Endpoints.verifyGalleryPassword(galleryId),
-      data: {'password': password},
-    );
-    return (r.data as Map<String, dynamic>)['sessionToken'] as String? ?? '';
-  }
-
-  Future<String> requestZipDownload(String galleryId, {List<String>? mediaIds}) async {
-    final r = await _api.post(
-      Endpoints.requestZipDownload(galleryId),
-      data: {if (mediaIds != null) 'mediaIds': mediaIds},
-    );
-    return (r.data as Map<String, dynamic>)['jobId'] as String? ?? '';
+  /// Password verification: check stored password directly.
+  /// For production hardening use a Cloud Function instead.
+  Future<bool> verifyPassword(
+      String projectId, String galleryId, String password) async {
+    final doc = await _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('galleries')
+        .doc(galleryId)
+        .get();
+    final storedPassword = doc.data()?['password'] as String?;
+    return storedPassword == null || storedPassword == password;
   }
 }

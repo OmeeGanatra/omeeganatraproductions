@@ -35,10 +35,13 @@ class SettingsScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.15),
+                      color: AppColors.gold.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: LabelMono(user.type, color: AppColors.gold),
+                    child: LabelMono(
+                      user.isAdmin ? 'admin' : 'client',
+                      color: AppColors.gold,
+                    ),
                   ),
                 ],
               ),

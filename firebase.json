@@ -1,4 +1,17 @@
 {
+  "firestore": {
+    "rules": "apps/flutter/firestore.rules",
+    "indexes": "apps/flutter/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "apps/flutter/storage.rules"
+  },
+  "hosting": {
+    "target": "portal",
+    "public": "apps/flutter/build/web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{"source": "**", "destination": "/index.html"}]
+  },
   "functions": [
     {
       "source": "functions",

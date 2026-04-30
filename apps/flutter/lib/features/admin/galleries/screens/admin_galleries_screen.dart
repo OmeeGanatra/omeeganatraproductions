@@ -5,17 +5,22 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/cached_image.dart';
 import '../../../../shared/widgets/ogp_error_view.dart';
 import '../../../../shared/widgets/ogp_shimmer.dart';
-import '../../../../shared/widgets/label_mono.dart';
 import '../providers/admin_galleries_provider.dart';
 
 class AdminGalleryDetailScreen extends ConsumerWidget {
-  const AdminGalleryDetailScreen({super.key, required this.galleryId});
+  const AdminGalleryDetailScreen({
+    super.key,
+    required this.projectId,
+    required this.galleryId,
+  });
+  final String projectId;
   final String galleryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final galleryAsync = ref.watch(adminGalleryProvider(galleryId));
-    final mediaAsync = ref.watch(adminGalleryMediaProvider(galleryId));
+    final params = (projectId: projectId, galleryId: galleryId);
+    final galleryAsync = ref.watch(adminGalleryProvider(params));
+    final mediaAsync = ref.watch(adminGalleryMediaProvider(params));
 
     return Scaffold(
       appBar: AppBar(
@@ -28,7 +33,7 @@ class AdminGalleryDetailScreen extends ConsumerWidget {
             data: (g) => TextButton(
               onPressed: () {},
               child: Text(
-                g.status == 'published' ? 'Unpublish' : 'Publish',
+                g.status == 'PUBLISHED' ? 'Unpublish' : 'Publish',
                 style: const TextStyle(color: AppColors.gold),
               ),
             ),
@@ -40,7 +45,7 @@ class AdminGalleryDetailScreen extends ConsumerWidget {
         loading: () => const ShimmerGrid(count: 12),
         error: (e, _) => OgpErrorView(
           message: e.toString(),
-          onRetry: () => ref.invalidate(adminGalleryMediaProvider(galleryId)),
+          onRetry: () => ref.invalidate(adminGalleryMediaProvider(params)),
         ),
         data: (media) {
           if (media.isEmpty) {
@@ -48,12 +53,16 @@ class AdminGalleryDetailScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.photo_outlined, size: 64, color: AppColors.textTertiary),
+                  const Icon(Icons.photo_outlined,
+                      size: 64, color: AppColors.textTertiary),
                   const SizedBox(height: 16),
-                  const Text('No media yet.', style: TextStyle(color: AppColors.textTertiary)),
+                  const Text('No media yet.',
+                      style: TextStyle(color: AppColors.textTertiary)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () => context.go('/admin/media-upload?galleryId=$galleryId'),
+                    onPressed: () => context.go(
+                      '/admin/media-upload?galleryId=$galleryId&projectId=$projectId',
+                    ),
                     icon: const Icon(Icons.upload_outlined),
                     label: const Text('Upload Media'),
                   ),
@@ -79,7 +88,8 @@ class AdminGalleryDetailScreen extends ConsumerWidget {
                       : Container(color: AppColors.surfaceDark),
                   if (item.isVideo)
                     const Center(
-                      child: Icon(Icons.play_circle_outline, color: Colors.white, size: 24),
+                      child: Icon(Icons.play_circle_outline,
+                          color: Colors.white, size: 24),
                     ),
                   Positioned(
                     top: 4,
@@ -93,7 +103,8 @@ class AdminGalleryDetailScreen extends ConsumerWidget {
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Icon(Icons.delete_outline, color: Colors.white, size: 14),
+                        child: const Icon(Icons.delete_outline,
+                            color: Colors.white, size: 14),
                       ),
                     ),
                   ),
@@ -104,7 +115,9 @@ class AdminGalleryDetailScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/admin/media-upload?galleryId=$galleryId'),
+        onPressed: () => context.go(
+          '/admin/media-upload?galleryId=$galleryId&projectId=$projectId',
+        ),
         icon: const Icon(Icons.upload_outlined),
         label: const Text('Upload'),
         backgroundColor: AppColors.gold,

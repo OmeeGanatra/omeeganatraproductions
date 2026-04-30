@@ -1,25 +1,34 @@
-import '../../core/api/api_client.dart';
-import '../../core/api/endpoints.dart';
-import '../models/media_item.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FavoritesRepository {
-  const FavoritesRepository(this._api);
-  final ApiClient _api;
+  final _db = FirebaseFirestore.instance;
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
-  Future<List<MediaItem>> listFavorites() async {
-    final r = await _api.get(Endpoints.favorites);
-    final data = r.data;
-    final items = data is Map ? (data['favorites'] ?? data['data'] ?? []) : data;
-    return (items as List)
-        .map((j) => MediaItem.fromJson(j as Map<String, dynamic>))
-        .toList();
+  CollectionReference get _col =>
+      _db.collection('favorites').doc(_uid).collection('items');
+
+  Future<List<String>> listFavoriteIds() async {
+    if (_uid == null) return [];
+    final snap = await _col.get();
+    return snap.docs.map((d) => d.id).toList();
   }
 
-  Future<void> addFavorite(String mediaItemId) async {
-    await _api.post(Endpoints.addFavorite, data: {'mediaItemId': mediaItemId});
+  Future<void> addFavorite(
+    String mediaItemId, {
+    String? projectId,
+    String? galleryId,
+  }) async {
+    if (_uid == null) return;
+    await _col.doc(mediaItemId).set({
+      'addedAt': FieldValue.serverTimestamp(),
+      if (projectId != null) 'projectId': projectId,
+      if (galleryId != null) 'galleryId': galleryId,
+    });
   }
 
   Future<void> removeFavorite(String mediaItemId) async {
-    await _api.delete(Endpoints.removeFavorite(mediaItemId));
+    if (_uid == null) return;
+    await _col.doc(mediaItemId).delete();
   }
 }

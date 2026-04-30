@@ -1,70 +1,56 @@
-import 'package:http/http.dart' as http;
-import '../../../core/api/api_client.dart';
-import '../../../core/api/endpoints.dart';
+import 'dart:typed_data';
 
-class UploadUrl {
-  final String mediaId;
-  final String uploadUrl;
-  final String key;
-
-  const UploadUrl({
-    required this.mediaId,
-    required this.uploadUrl,
-    required this.key,
-  });
-
-  factory UploadUrl.fromJson(Map<String, dynamic> json) {
-    return UploadUrl(
-      mediaId: json['mediaId'] as String,
-      uploadUrl: json['uploadUrl'] as String,
-      key: json['key'] as String? ?? '',
-    );
-  }
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class MediaUploadRepository {
-  const MediaUploadRepository(this._api);
-  final ApiClient _api;
+  final _db = FirebaseFirestore.instance;
+  final _storage = FirebaseStorage.instance;
 
-  Future<List<UploadUrl>> requestUploadUrls(
-    String galleryId,
-    List<Map<String, dynamic>> files,
-  ) async {
-    final r = await _api.post(
-      Endpoints.mediaUploadUrls(galleryId),
-      data: {'files': files},
-    );
-    final data = r.data;
-    final urls = data is Map ? (data['uploadUrls'] ?? data['urls'] ?? []) : data;
-    return (urls as List)
-        .map((j) => UploadUrl.fromJson(j as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Upload file bytes directly to S3 using http (not Dio) to avoid
-  /// auth header injection issues with presigned S3 URLs.
-  Future<void> uploadToS3({
-    required String uploadUrl,
+  /// Upload raw bytes to Firebase Storage under
+  /// projects/{projectId}/galleries/{galleryId}/{filename}
+  /// and write a media document to Firestore.
+  Future<String> uploadMediaItem({
+    required String projectId,
+    required String galleryId,
+    required String filename,
     required List<int> bytes,
     required String contentType,
+    int sortOrder = 0,
   }) async {
-    final response = await http.put(
-      Uri.parse(uploadUrl),
-      headers: {'Content-Type': contentType},
-      body: bytes,
-    );
-    if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('S3 upload failed: ${response.statusCode}');
-    }
+    final storagePath = 'projects/$projectId/galleries/$galleryId/$filename';
+    final ref = _storage.ref(storagePath);
+
+    final metadata = SettableMetadata(contentType: contentType);
+    await ref.putData(Uint8List.fromList(bytes), metadata);
+
+    final downloadUrl = await ref.getDownloadURL();
+
+    // Write Firestore media document
+    final docRef = await _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('galleries')
+        .doc(galleryId)
+        .collection('media')
+        .add({
+      'galleryId': galleryId,
+      'projectId': projectId,
+      'filenameOriginal': filename,
+      'type': _inferType(contentType),
+      'displayUrl': downloadUrl,
+      'thumbnailUrl': downloadUrl,
+      'storagePath': storagePath,
+      'sortOrder': sortOrder,
+      'isHighlight': false,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return docRef.id;
   }
 
-  Future<void> confirmUpload(
-    String galleryId,
-    List<String> mediaIds,
-  ) async {
-    await _api.post(
-      Endpoints.mediaConfirmUpload(galleryId),
-      data: {'mediaIds': mediaIds},
-    );
+  String _inferType(String contentType) {
+    if (contentType.startsWith('video/')) return 'video';
+    return 'photo';
   }
 }

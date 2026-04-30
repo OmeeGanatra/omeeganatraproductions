@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+    function isClient() {
+      return request.auth != null;
+    }
+    function hasProjectAccess(projectId) {
+      return isAdmin() ||
+        (isClient() && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.clientIds);
+    }
+
+    // Admins can do everything
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Clients can read their own profile
+    match /clients/{uid} {
+      allow read: if request.auth.uid == uid;
+    }
+
+    // Clients can read projects where they are in clientIds
+    match /projects/{projectId} {
+      allow read: if hasProjectAccess(projectId);
+      match /galleries/{galleryId} {
+        allow read: if hasProjectAccess(projectId) &&
+          resource.data.status == 'PUBLISHED';
+        match /media/{mediaId} {
+          allow read: if hasProjectAccess(projectId);
+        }
+      }
+      match /timeline/{eventId} {
+        allow read: if hasProjectAccess(projectId);
+      }
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read, update: if request.auth.uid == resource.data.recipientId;
+    }
+
+    // Favorites
+    match /favorites/{uid}/items/{itemId} {
+      allow read, write: if request.auth.uid == uid;
+    }
+  }
+}

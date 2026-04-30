@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class NotificationModel {
   final String id;
   final String type;
@@ -17,16 +19,36 @@ class NotificationModel {
     required this.createdAt,
   });
 
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+  factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
+    final j = doc.data() as Map<String, dynamic>? ?? {};
     return NotificationModel(
-      id: json['id'] as String,
-      type: json['type'] as String? ?? 'general',
-      title: json['title'] as String,
-      body: json['body'] as String,
-      data: json['data'] as Map<String, dynamic>?,
-      isRead: json['isRead'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: doc.id,
+      type: j['type'] as String? ?? 'general',
+      title: j['title'] as String? ?? '',
+      body: j['body'] as String? ?? '',
+      data: j['data'] as Map<String, dynamic>?,
+      isRead: j['isRead'] as bool? ?? false,
+      createdAt: _parseDate(j['createdAt']) ?? DateTime.now(),
     );
+  }
+
+  factory NotificationModel.fromJson(Map<String, dynamic> j) {
+    return NotificationModel(
+      id: j['id'] as String? ?? '',
+      type: j['type'] as String? ?? 'general',
+      title: j['title'] as String? ?? '',
+      body: j['body'] as String? ?? '',
+      data: j['data'] as Map<String, dynamic>?,
+      isRead: j['isRead'] as bool? ?? false,
+      createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '') ?? DateTime.now(),
+    );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {

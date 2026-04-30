@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ClientModel {
   final String id;
   final String fullName;
@@ -19,19 +21,40 @@ class ClientModel {
     this.createdAt,
   });
 
-  factory ClientModel.fromJson(Map<String, dynamic> json) {
+  factory ClientModel.fromFirestore(DocumentSnapshot doc) {
+    final j = doc.data() as Map<String, dynamic>? ?? {};
     return ClientModel(
-      id: json['id'] as String,
-      fullName: (json['fullName'] ?? json['name'] ?? '') as String,
-      email: json['email'] as String? ?? '',
-      phone: json['phone'] as String?,
-      avatarUrl: json['avatarUrl'] as String?,
-      status: json['status'] as String? ?? 'active',
-      projectCount: json['projectCount'] as int? ?? 0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
+      id: doc.id,
+      fullName: j['fullName'] as String? ?? j['name'] as String? ?? '',
+      email: j['email'] as String? ?? '',
+      phone: j['phone'] as String?,
+      avatarUrl: j['avatarUrl'] as String?,
+      status: j['status'] as String? ?? 'active',
+      projectCount: j['projectCount'] as int? ?? 0,
+      createdAt: _parseDate(j['createdAt']),
+    );
+  }
+
+  factory ClientModel.fromJson(Map<String, dynamic> j) {
+    return ClientModel(
+      id: j['id'] as String? ?? '',
+      fullName: j['fullName'] as String? ?? j['name'] as String? ?? '',
+      email: j['email'] as String? ?? '',
+      phone: j['phone'] as String?,
+      avatarUrl: j['avatarUrl'] as String?,
+      status: j['status'] as String? ?? 'active',
+      projectCount: j['projectCount'] as int? ?? 0,
+      createdAt: j['createdAt'] != null
+          ? DateTime.tryParse(j['createdAt'] as String)
           : null,
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {

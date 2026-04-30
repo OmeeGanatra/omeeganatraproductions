@@ -41,7 +41,8 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaAsync = ref.watch(galleryMediaProvider(widget.galleryId));
+    final params = (projectId: widget.projectSlug, galleryId: widget.galleryId);
+    final mediaAsync = ref.watch(galleryMediaProvider(params));
 
     return Scaffold(
       backgroundColor: Colors.black,

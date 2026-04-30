@@ -22,15 +22,18 @@ class MediaViewerScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         actions: [
           mediaAsync.maybeWhen(
-            data: (item) => IconButton(
-              icon: Icon(
-                item.isFavorited ? Icons.favorite : Icons.favorite_outline,
-                color: item.isFavorited ? Colors.red : Colors.white,
-              ),
-              onPressed: () => ref
-                  .read(favoritesProvider.notifier)
-                  .toggle(item),
-            ),
+            data: (item) {
+              final isFav = ref.watch(favoritesProvider).valueOrNull?.contains(item.id) ?? item.isFavorited;
+              return IconButton(
+                icon: Icon(
+                  isFav ? Icons.favorite : Icons.favorite_outline,
+                  color: isFav ? Colors.red : Colors.white,
+                ),
+                onPressed: () => ref
+                    .read(favoritesProvider.notifier)
+                    .toggle(item.id),
+              );
+            },
             orElse: () => const SizedBox.shrink(),
           ),
           IconButton(

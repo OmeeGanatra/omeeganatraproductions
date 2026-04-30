@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
-import '../../features/auth/screens/otp_screen.dart';
 import '../../features/portal/portal_shell.dart';
 import '../../features/portal/projects/screens/projects_list_screen.dart';
 import '../../features/portal/projects/screens/project_detail_screen.dart';
@@ -35,57 +34,51 @@ final _adminShellKey = GlobalKey<NavigatorState>(debugLabel: 'adminShell');
 // Portal branch navigator keys
 final _portalProjectsKey = GlobalKey<NavigatorState>(debugLabel: 'projects');
 final _portalFavoritesKey = GlobalKey<NavigatorState>(debugLabel: 'favorites');
-final _portalNotificationsKey = GlobalKey<NavigatorState>(debugLabel: 'notifications');
+final _portalNotificationsKey =
+    GlobalKey<NavigatorState>(debugLabel: 'notifications');
 final _portalProfileKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
 
 // Admin branch navigator keys
 final _adminDashboardKey = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final _adminClientsKey = GlobalKey<NavigatorState>(debugLabel: 'adminClients');
-final _adminProjectsKey = GlobalKey<NavigatorState>(debugLabel: 'adminProjects');
-final _adminGalleriesKey = GlobalKey<NavigatorState>(debugLabel: 'adminGalleries');
+final _adminProjectsKey =
+    GlobalKey<NavigatorState>(debugLabel: 'adminProjects');
+final _adminGalleriesKey =
+    GlobalKey<NavigatorState>(debugLabel: 'adminGalleries');
 final _adminUploadKey = GlobalKey<NavigatorState>(debugLabel: 'adminUpload');
-final _adminAnalyticsKey = GlobalKey<NavigatorState>(debugLabel: 'adminAnalytics');
+final _adminAnalyticsKey =
+    GlobalKey<NavigatorState>(debugLabel: 'adminAnalytics');
 final _adminNotifyKey = GlobalKey<NavigatorState>(debugLabel: 'adminNotify');
 final _adminTeamKey = GlobalKey<NavigatorState>(debugLabel: 'adminTeam');
-final _adminSettingsKey = GlobalKey<NavigatorState>(debugLabel: 'adminSettings');
+final _adminSettingsKey =
+    GlobalKey<NavigatorState>(debugLabel: 'adminSettings');
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/portal/projects',
     debugLogDiagnostics: false,
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
-      final isLoading = authState.isLoading;
-      final loc = state.matchedLocation;
+      final authState = ref.read(authStateProvider);
+      final isAuthed = authState.valueOrNull != null;
+      final isOnLogin = state.matchedLocation == '/login';
 
-      if (isLoading) return null;
+      // Still loading — don't redirect yet
+      if (authState.isLoading) return null;
 
-      final isAuthRoute = loc == '/login' || loc == '/otp';
+      if (!isAuthed && !isOnLogin) return '/login';
 
-      if (!isAuthenticated && !isAuthRoute) return '/login';
-
-      if (isAuthenticated && isAuthRoute) {
-        final user = authState.user;
-        if (user != null && user.isAdmin) return '/admin/dashboard';
-        return '/portal/projects';
+      if (isAuthed && isOnLogin) {
+        final user = ref.read(authProvider).user;
+        return user?.isAdmin == true ? '/admin/dashboard' : '/portal/projects';
       }
-
-      if (authState.requiresOtp && loc == '/login') return '/otp';
 
       // Clients can't access admin routes
-      if (isAuthenticated && authState.user?.isClient == true &&
-          loc.startsWith('/admin')) {
+      final user = ref.read(authProvider).user;
+      if (isAuthed &&
+          user?.isClient == true &&
+          state.matchedLocation.startsWith('/admin')) {
         return '/portal/projects';
-      }
-
-      // Admins are redirected from portal root
-      if (isAuthenticated && authState.user?.isAdmin == true &&
-          loc == '/portal/projects' && !loc.contains('/portal/projects/')) {
-        // Allow admins to still see portal if they navigate there intentionally
-        return null;
       }
 
       return null;
@@ -94,10 +87,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/otp',
-        builder: (context, state) => const OTPScreen(),
       ),
 
       // Portal shell with 4 tabs
@@ -248,8 +237,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             navigatorKey: _adminGalleriesKey,
             routes: [
               GoRoute(
+                // projectId passed as query param: /admin/galleries/:galleryId?projectId=xxx
                 path: '/admin/galleries/:galleryId',
                 builder: (context, state) => AdminGalleryDetailScreen(
+                  projectId:
+                      state.uri.queryParameters['projectId'] ?? '',
                   galleryId: state.pathParameters['galleryId']!,
                 ),
               ),

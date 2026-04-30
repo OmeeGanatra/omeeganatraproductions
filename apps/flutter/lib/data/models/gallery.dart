@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Gallery {
   final String id;
   final String projectId;
@@ -25,22 +27,46 @@ class Gallery {
     this.createdAt,
   });
 
-  factory Gallery.fromJson(Map<String, dynamic> json) {
+  factory Gallery.fromFirestore(DocumentSnapshot doc) {
+    final j = doc.data() as Map<String, dynamic>? ?? {};
     return Gallery(
-      id: json['id'] as String,
-      projectId: json['projectId'] as String,
-      title: json['title'] as String,
-      slug: json['slug'] as String,
-      coverImageUrl: json['coverImageUrl'] as String?,
-      mediaCount: json['mediaCount'] as int? ?? 0,
-      status: json['status'] as String? ?? 'active',
-      downloadEnabled: json['downloadEnabled'] as bool? ?? true,
-      watermarkEnabled: json['watermarkEnabled'] as bool? ?? false,
-      sortOrder: json['sortOrder'] as int? ?? 0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
+      id: doc.id,
+      projectId: j['projectId'] as String? ?? '',
+      title: j['title'] as String? ?? '',
+      slug: j['slug'] as String? ?? doc.id,
+      coverImageUrl: j['coverImageUrl'] as String?,
+      mediaCount: j['mediaCount'] as int? ?? 0,
+      status: j['status'] as String? ?? 'active',
+      downloadEnabled: j['downloadEnabled'] as bool? ?? true,
+      watermarkEnabled: j['watermarkEnabled'] as bool? ?? false,
+      sortOrder: j['sortOrder'] as int? ?? 0,
+      createdAt: _parseDate(j['createdAt']),
+    );
+  }
+
+  factory Gallery.fromJson(Map<String, dynamic> j) {
+    return Gallery(
+      id: j['id'] as String? ?? '',
+      projectId: j['projectId'] as String? ?? '',
+      title: j['title'] as String? ?? '',
+      slug: j['slug'] as String? ?? '',
+      coverImageUrl: j['coverImageUrl'] as String?,
+      mediaCount: j['mediaCount'] as int? ?? 0,
+      status: j['status'] as String? ?? 'active',
+      downloadEnabled: j['downloadEnabled'] as bool? ?? true,
+      watermarkEnabled: j['watermarkEnabled'] as bool? ?? false,
+      sortOrder: j['sortOrder'] as int? ?? 0,
+      createdAt: j['createdAt'] != null
+          ? DateTime.tryParse(j['createdAt'] as String)
           : null,
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {

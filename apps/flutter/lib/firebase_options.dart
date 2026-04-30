@@ -30,7 +30,7 @@ class DefaultFirebaseOptions {
     measurementId: 'G-N4QD6QZ3CX',
   );
 
-  // Replace after: Firebase Console → Add Android app (com.omeeganatra.ogp)
+  // Replace after: Firebase Console → Add Android app (com.ogp.ogp)
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCQmjHXB4iQ_viSRi1w9GXle9swoA3Ha1Q',
     authDomain: 'omee-ganatra-productions.firebaseapp.com',
@@ -40,7 +40,7 @@ class DefaultFirebaseOptions {
     appId: '1:1094303353895:android:REPLACE_WITH_ANDROID_APP_ID',
   );
 
-  // Replace after: Firebase Console → Add iOS app (com.omeeganatra.ogp)
+  // Replace after: Firebase Console → Add iOS app (com.ogp.ogp)
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCQmjHXB4iQ_viSRi1w9GXle9swoA3Ha1Q',
     authDomain: 'omee-ganatra-productions.firebaseapp.com',
@@ -48,6 +48,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'omee-ganatra-productions.firebasestorage.app',
     messagingSenderId: '1094303353895',
     appId: '1:1094303353895:ios:REPLACE_WITH_IOS_APP_ID',
-    iosBundleId: 'com.omeeganatra.ogp',
+    iosBundleId: 'com.ogp.ogp',
   );
 }
